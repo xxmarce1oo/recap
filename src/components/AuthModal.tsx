@@ -1,5 +1,8 @@
+// arquivo: src/components/AuthModal.tsx
+
 import { Dialog } from '@headlessui/react'
-import { useState } from 'react'
+import { useState, FormEvent } from 'react'
+import { FaCircle, FaEnvelope, FaLock, FaUser } from 'react-icons/fa' // Adicionado FaUser
 
 type AuthModalProps = {
   isOpen: boolean
@@ -7,87 +10,119 @@ type AuthModalProps = {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [isLogin, setIsLogin] = useState(true)
+  // Estados para controlar os inputs do formulário
+  const [username, setUsername] = useState(''); // Adicionado campo de usuário
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // ✅ A lógica de autenticação (Firebase, Supabase, etc.) para criar um novo usuário virá aqui
+    if (password !== confirmPassword) {
+      alert("As senhas não coincidem!");
+      return;
+    }
+    console.log('Tentativa de registro com:', { username, email, password });
+    // onClose(); // Opcional: fechar o modal após um registro bem-sucedido
+  }
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-6 shadow-xl">
-          <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {isLogin ? 'Login' : 'Cadastre-se'}
-          </Dialog.Title>
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
+
+      {/* Container do Modal */}
+      <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
+        <Dialog.Panel className="w-full max-w-sm rounded-2xl bg-gray-800 p-8 shadow-2xl">
           
-          <form className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email
-              </label>
+          {/* Logo e Título */}
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="flex items-center space-x-2">
+              <FaCircle className="text-red-700 text-2xl" />
+              <h2 className="text-2xl font-bold text-white">RECAP</h2>
+            </div>
+            <Dialog.Title className="text-lg font-medium text-gray-300 mt-2">
+              Crie sua conta para começar
+            </Dialog.Title>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* Campo de Nome de Usuário */}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaUser className="h-5 w-5 text-gray-500" />
+              </span>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-white placeholder-gray-400"
+                placeholder="Nome de usuário"
+                required
+              />
+            </div>
+
+            {/* Campo de Email */}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaEnvelope className="h-5 w-5 text-gray-500" />
+              </span>
               <input
                 type="email"
                 id="email"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-white placeholder-gray-400"
                 placeholder="seu@email.com"
+                required
               />
             </div>
             
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Senha
-              </label>
+            {/* Campo de Senha */}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaLock className="h-5 w-5 text-gray-500" />
+              </span>
               <input
                 type="password"
                 id="password"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-white placeholder-gray-400"
+                placeholder="Senha"
+                required
               />
             </div>
             
-            {!isLogin && (
-              <div>
-                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Confirmar Senha
-                </label>
-                <input
-                  type="password"
-                  id="confirm-password"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="••••••••"
-                />
-              </div>
-            )}
+            {/* Campo de Confirmar Senha */}
+            <div className="relative">
+               <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaLock className="h-5 w-5 text-gray-500" />
+              </span>
+              <input
+                type="password"
+                id="confirm-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-white placeholder-gray-400"
+                placeholder="Confirme sua senha"
+                required
+              />
+            </div>
             
+            {/* Botão de Criar Conta */}
             <button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-cyan-500 transition-colors"
             >
-              {isLogin ? 'Entrar' : 'Criar Conta'}
+              Criar Conta
             </button>
           </form>
           
-          <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-            {isLogin ? (
-              <span>
-                Não tem uma conta?{' '}
-                <button 
-                  onClick={() => setIsLogin(false)}
-                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  Cadastre-se
-                </button>
-              </span>
-            ) : (
-              <span>
-                Já tem uma conta?{' '}
-                <button 
-                  onClick={() => setIsLogin(true)}
-                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  Faça login
-                </button>
-              </span>
-            )}
-          </div>
+          {/* O link para alternar foi removido */}
         </Dialog.Panel>
       </div>
     </Dialog>
