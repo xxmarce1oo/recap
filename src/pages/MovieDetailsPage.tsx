@@ -4,7 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getMovieDetails, getMovieProviders, getMovieVideos, getMovieCredits, getMovieReleaseDates, getMovieImages } from '../services/tmdbService'
 import { useEffect, useState } from 'react'
 import { Movie } from '../models/movie'
-import Header from '../components/layout/Header'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -97,7 +96,6 @@ const changeBackdrop = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
-      <Header />
       <div className="relative">
         <div 
           className="w-full h-[500px] bg-cover bg-top -mt-1"
