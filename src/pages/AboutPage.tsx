@@ -22,7 +22,7 @@ export default function AboutPage() {
                 O <strong className="font-semibold text-white">Recap</strong> nasceu de uma ambição: ir além do convencional. Fruto de um Trabalho de Conclusão de Curso (TCC) do curso de Análise e Desenvolvimento de Sistemas da  <strong className="font-semibold text-white">Universidade Federal do Paraná (UFPR)</strong>, o projeto foi idealizado por um grupo de estudantes apaixonados por tecnologia e, acima de tudo, por cinema.
               </p>
               <p>
-                Inspirado por plataformas como o Letterboxd, mas com o desejo de oferecer uma experiência mais rica e inteligente, o fundador Marcelo Batista uniu sua paixão pela sétima arte à vontade de inovar. A questão central era simples, mas poderosa: como podemos usar a tecnologia para aprimorar a forma como descobrimos e interagimos com filmes?
+                Inspirado por plataformas como o Letterboxd, mas com o desejo de oferecer uma experiência mais rica e inteligente, o grupo uniu sua paixão pela sétima arte à vontade de inovar. A questão central era simples, mas poderosa: como podemos usar a tecnologia para aprimorar a forma como descobrimos e interagimos com filmes?
               </p>
               
               {/* Seção de Diferenciais com mais destaque */}
