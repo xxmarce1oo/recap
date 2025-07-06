@@ -133,8 +133,7 @@ export const getMovieImages = async (movieId: number) => {
       }
     }
   );
-  // Retornamos apenas a lista de backdrops para simplificar
-  return response.data.backdrops || []; 
+  return response.data; 
 };
 
 export const getPopularMovies = async (): Promise<ApiResponse<Movie>> => {

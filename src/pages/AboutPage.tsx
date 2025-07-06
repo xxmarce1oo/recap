@@ -29,7 +29,7 @@ export default function AboutPage() {
               <div className="bg-gray-950/50 p-6 rounded-2xl border border-gray-800">
                 <h2 className="text-2xl font-bold text-white mb-4">O Futuro da Descoberta</h2>
                 <p>
-                  O Recap se diferencia por duas funcionalidades inovadoras. A primeira é um <strong className="font-semibold text-cyan-300">sistema de recomendação híbrido</strong>, que aprende com seu gosto para oferecer sugestões que você realmente vai amar. A segunda é um <strong className="font-semibold text-cyan-300">chat integrado com IA Generativa</strong>, um verdadeiro especialista em cinema no seu bolso, pronto para te dar recomendações com base em qualquer pedido, por mais específico que seja.
+                  O <strong>Recap</strong> se diferencia por duas funcionalidades inovadoras. A primeira é um <strong className="font-semibold text-cyan-300">sistema de recomendação híbrido</strong>, que aprende com seu gosto para oferecer sugestões que você realmente vai amar. A segunda é um <strong className="font-semibold text-cyan-300">chat integrado com IA Generativa</strong>, um verdadeiro especialista em cinema no seu bolso, pronto para te dar recomendações com base em qualquer pedido, por mais específico que seja.
                 </p>
               </div>
   
