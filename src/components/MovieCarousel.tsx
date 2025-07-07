@@ -10,8 +10,8 @@ interface Props {
 }
 
 const categorySlugs: { [key: string]: string } = {
-  'Lançamentos': 'now-playing',
-  'Melhores Avaliados': 'top-rated',
+  'Lançamentos': 'now_playing',
+  'Melhores Avaliados': 'top_rated',
   'Populares': 'popular',
 };
 
