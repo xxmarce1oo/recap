@@ -123,7 +123,6 @@ export const getMovieReleaseDates = async (movieId: number) => {
   return response.data.results
 }
 
-// ✅ NOVA FUNÇÃO ADICIONADA AQUI
 export const getMovieImages = async (movieId: number) => {
   const response = await axios.get(
     `${BASE_URL}/movie/${movieId}/images`,

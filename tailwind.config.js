@@ -6,6 +6,11 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // ✅ 2. ADICIONE A NOVA FAMÍLIA DE FONTES AQUI
+      fontFamily: {
+        sans: ['Montserrat', 'sans-serif'], // Define 'Quicksand' como a fonte padrão sans-serif
+      },
+      // Suas outras extensões de cores continuam aqui...
       colors: {
         gray: {
           50: '#f9fafb',
