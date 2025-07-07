@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+// arquivo: src/pages/UserProfilePage.tsx
+
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FaUserCircle, FaCamera, FaPencilAlt } from 'react-icons/fa';
 import AvatarSelectionModal from '../components/AvatarSelectionModal';
 import MovieSearchModal from '../components/MovieSearchModal';
 import BackdropSelectionModal from '../components/BackdropSelectionModal';
-import { updateAvatarUrl, updateProfileBanner } from '../services/profileService';
+import FavoriteMovieSlot from '../components/FavoriteMovieSlot';
+import WatchlistPreview from '../components/WatchlistPreview';
+import { updateAvatarUrl, updateProfileBanner, updateFavoriteMovieSlot } from '../services/profileService';
 import { getMovieDetails, getMovieImages } from '../services/tmdbService';
+import { getWatchlist } from '../services/watchlistService';
 import { Movie } from '../models/movie';
 import { supabase } from '../lib/supabaseClient';
 
@@ -15,81 +20,133 @@ export default function UserProfilePage() {
     const [isBannerSearchModalOpen, setIsBannerSearchModalOpen] = useState(false);
     const [isBackdropSelectModalOpen, setIsBackdropSelectModalOpen] = useState(false);
 
+    // Estados do Banner
     const [bannerMovie, setBannerMovie] = useState<Movie | null>(null);
     const [bannerBackdropPath, setBannerBackdropPath] = useState<string | null>(null);
     const [bannerPosition, setBannerPosition] = useState<string>('center');
     const [selectedMovieForBackdrop, setSelectedMovieForBackdrop] = useState<Movie | null>(null);
     const [availableBackdrops, setAvailableBackdrops] = useState<any[]>([]);
 
-    // Efeito para buscar os dados do banner e perfil do usuário quando a página carrega
-    useEffect(() => {
-        const fetchProfileData = async () => {
-            if (!user) return;
-            try {
-                const { data: profileData, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('banner_movie_id, banner_backdrop_path, banner_position')
-                    .eq('id', user.id)
-                    .single();
+    // Estados para os filmes favoritos
+    const [favoriteMovies, setFavoriteMovies] = useState<(Movie | null)[]>(Array(4).fill(null));
+    const [isFavoriteSearchModalOpen, setIsFavoriteSearchModalOpen] = useState(false);
+    const [editingSlot, setEditingSlot] = useState<number | null>(null);
 
-                if (profileError && profileError.code !== 'PGRST116') {
-                    throw profileError;
-                }
+    // Estados para a pré-visualização da watchlist
+    const [watchlistPreview, setWatchlistPreview] = useState<Movie[]>([]);
+    const [watchlistCount, setWatchlistCount] = useState(0);
 
-                if (profileData?.banner_movie_id && profileData?.banner_backdrop_path) {
-                    const movieDetails = await getMovieDetails(profileData.banner_movie_id);
-                    setBannerMovie(movieDetails);
-                    setBannerBackdropPath(profileData.banner_backdrop_path);
-                    setBannerPosition(profileData.banner_position || 'center');
-                }
-            } catch (error) {
-                console.error("Erro ao buscar dados do perfil:", error);
+    const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+    const fetchProfileData = useCallback(async () => {
+        if (!user) return;
+        setIsProfileLoading(true);
+        try {
+            // Busca dados do perfil do Supabase
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('banner_movie_id, banner_backdrop_path, banner_position, fav_movie_id_1, fav_movie_id_2, fav_movie_id_3, fav_movie_id_4')
+                .eq('id', user.id)
+                .single();
+
+            // Busca IDs da watchlist do Supabase
+            const watchlistIds = await getWatchlist(user.id);
+            setWatchlistCount(watchlistIds.length);
+
+            // Monta um array de promessas para buscar todos os dados de filmes da API TMDb em paralelo
+            const movieDetailPromises = [];
+
+            if (profileData?.banner_movie_id) {
+                movieDetailPromises.push(getMovieDetails(profileData.banner_movie_id));
             }
-        };
 
-        fetchProfileData();
+            const favIds = [profileData?.fav_movie_id_1, profileData?.fav_movie_id_2, profileData?.fav_movie_id_3, profileData?.fav_movie_id_4];
+            favIds.forEach(id => {
+                if (id) movieDetailPromises.push(getMovieDetails(id));
+            });
+
+            if (watchlistIds.length > 0) {
+                const previewIds = watchlistIds.slice(0, 5);
+                movieDetailPromises.push(...previewIds.map(id => getMovieDetails(id)));
+            }
+            
+            // Com os dados de perfil e watchlist em mãos, buscamos os detalhes dos filmes
+            if (profileData) {
+                const favAndWatchlistIds = [
+                    profileData.fav_movie_id_1,
+                    profileData.fav_movie_id_2,
+                    profileData.fav_movie_id_3,
+                    profileData.fav_movie_id_4,
+                    ...watchlistIds.slice(0, 5) // Pega somente os 5 primeiros para a pré-visualização
+                ].filter(id => id !== null) as number[];
+
+                const uniqueIds = [...new Set(favAndWatchlistIds)]; // Evita buscas repetidas
+                const movieDetails = await Promise.all(uniqueIds.map(id => getMovieDetails(id)));
+
+                // Cria um mapa para fácil acesso aos detalhes dos filmes
+                const movieMap = new Map<number, Movie>();
+                movieDetails.forEach(movie => movieMap.set(movie.id, movie));
+
+                // Atualiza os estados com os dados corretos
+                const newFavorites = favIds.map(id => (id ? movieMap.get(id) : null) || null);
+                setFavoriteMovies(newFavorites);
+
+                const newWatchlistPreview = watchlistIds.slice(0, 5).map(id => movieMap.get(id)!);
+                setWatchlistPreview(newWatchlistPreview);
+            }
+
+
+        } catch (error) {
+            console.error("Erro ao buscar dados do perfil:", error);
+        } finally {
+            setIsProfileLoading(false);
+        }
     }, [user]);
 
-    // Função para atualizar o avatar
+    useEffect(() => {
+        fetchProfileData();
+    }, [fetchProfileData]);
+
     const handleAvatarUpdate = async (url: string) => {
         if (!user) return;
-        try {
-            await updateAvatarUrl(user.id, url);
-        } catch (error) {
-            console.error("Falha ao atualizar avatar:", error);
-            throw error;
-        }
+        await updateAvatarUrl(user.id, url).catch(console.error);
     };
-
-    // Função chamada quando um filme é escolhido no modal de busca
     const handleMovieSelectedForBanner = async (movie: Movie) => {
         setIsBannerSearchModalOpen(false);
-        try {
-            const images = await getMovieImages(movie.id);
-            setSelectedMovieForBackdrop(movie);
-            setAvailableBackdrops(images.backdrops || []);
-            setIsBackdropSelectModalOpen(true);
-        } catch (error) {
-            console.error("Erro ao buscar backdrops:", error);
-        }
+        const images = await getMovieImages(movie.id);
+        setSelectedMovieForBackdrop(movie);
+        setAvailableBackdrops(images.backdrops || []);
+        setIsBackdropSelectModalOpen(true);
     };
-
-    // Função chamada quando um backdrop é finalmente escolhido
     const handleBackdropSelected = async (backdropPath: string, position: string) => {
         if (!user || !selectedMovieForBackdrop) return;
+        await updateProfileBanner(user.id, selectedMovieForBackdrop.id, backdropPath, position);
+        setBannerMovie(selectedMovieForBackdrop);
+        setBannerBackdropPath(backdropPath);
+        setBannerPosition(position);
+        setIsBackdropSelectModalOpen(false);
+    };
+    const handleOpenFavoriteModal = (slotIndex: number) => {
+        setEditingSlot(slotIndex);
+        setIsFavoriteSearchModalOpen(true);
+    };
+    const handleFavoriteMovieSelect = async (movie: Movie) => {
+        if (editingSlot === null || !user) return;
+        const originalFavorites = [...favoriteMovies];
+        const newFavorites = [...favoriteMovies];
+        newFavorites[editingSlot] = movie;
+        setFavoriteMovies(newFavorites);
         try {
-            await updateProfileBanner(user.id, selectedMovieForBackdrop.id, backdropPath, position);
-            setBannerMovie(selectedMovieForBackdrop);
-            setBannerBackdropPath(backdropPath);
-            setBannerPosition(position);
-            setIsBackdropSelectModalOpen(false);
+            await updateFavoriteMovieSlot(user.id, editingSlot, movie.id);
         } catch (error) {
-            console.error("Erro ao atualizar o banner:", error);
-            alert("Não foi possível atualizar o banner.");
+            console.error("Erro ao salvar filme favorito:", error);
+            setFavoriteMovies(originalFavorites);
         }
+        setIsFavoriteSearchModalOpen(false);
+        setEditingSlot(null);
     };
 
-    if (!user) {
+    if (!user && !isProfileLoading) {
         return (
             <div className="container mx-auto px-12 py-24 text-center">
                 <p>Você precisa estar logado para ver seu perfil.</p>
@@ -97,16 +154,16 @@ export default function UserProfilePage() {
         );
     }
 
-    const avatarUrl = user.user_metadata?.avatar_url;
+    const avatarUrl = user?.user_metadata?.avatar_url;
     const bannerUrl = bannerBackdropPath ? `https://image.tmdb.org/t/p/original${bannerBackdropPath}` : '';
 
     return (
         <>
             <div className="bg-gray-900 text-white min-h-screen pt-16">
+                {/* Seção do Banner e Avatar */}
                 <div className="relative">
-                    {/* Banner com posição ajustável */}
                     <div
-                        className="w-full h-96 bg-cover group"
+                        className="w-full h-64 md:h-96 bg-cover group bg-center"
                         style={{ 
                             backgroundImage: bannerUrl ? `url(${bannerUrl})` : 'linear-gradient(to bottom, #1f2937, #111827)',
                             backgroundPosition: `center ${bannerPosition}`,
@@ -115,7 +172,7 @@ export default function UserProfilePage() {
                         <div className="absolute inset-0 bg-black/30"></div>
                         <div
                             className="absolute inset-0" 
-                            style={{ background: 'linear-gradient(to bottom, transparent 90%, rgba(17, 24, 39, 0.8), #111827)' }}
+                            style={{ background: 'linear-gradient(to bottom, transparent 70%, rgba(17, 24, 39, 0.8), #111827)' }}
                         ></div>
                         <button 
                             onClick={() => setIsBannerSearchModalOpen(true)}
@@ -125,7 +182,6 @@ export default function UserProfilePage() {
                         </button>
                     </div>
 
-                    {/* Avatar e informações do usuário */}
                     <div className="absolute left-1/2 -translate-x-1/2 -bottom-20 w-full px-4 z-20 pointer-events-none">
                         <div className="flex flex-col items-center text-center">
                             <div className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0 pointer-events-auto">
@@ -144,33 +200,62 @@ export default function UserProfilePage() {
                                     <FaPencilAlt size={14} />
                                 </button>
                             </div>
-                            
                             <div className="mt-4 pointer-events-auto">
                                 <h1 className="text-3xl font-bold text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
-                                    {user.user_metadata?.username || 'Usuário'}
+                                    {user?.user_metadata?.username || 'Usuário'}
                                 </h1>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Seção de Conteúdo Principal */}
                 <div className="container mx-auto px-6 md:px-12 pt-28 pb-16">
-                    <div className="mt-8 border-t border-gray-700/50 pt-8">
-                        <h2 className="text-2xl font-bold mb-4">Estatísticas</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div className="bg-gray-800 p-4 rounded-lg">
-                                <p className="text-3xl font-bold text-cyan-400">128</p>
-                                <p className="text-sm text-gray-400">Filmes Assistidos</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        
+                        {/* Coluna Principal (Esquerda) */}
+                        <div className="lg:col-span-3 space-y-8">
+                            
+                            {/* Seção de Filmes Favoritos */}
+                            <div>
+                                <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Filmes Favoritos</h2>
+                                {isProfileLoading ? (
+                                    <div className="grid grid-cols-4 gap-4">
+                                        {[...Array(4)].map((_, i) => <div key={i} className="aspect-[2/3] w-full bg-gray-800 rounded-lg animate-pulse" />)}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-4 gap-4">
+                                        {favoriteMovies.map((movie, index) => (
+                                            <FavoriteMovieSlot key={index} movie={movie} onSelectSlot={() => handleOpenFavoriteModal(index)} />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            <div className="bg-gray-800 p-4 rounded-lg">
-                                <p className="text-3xl font-bold text-cyan-400">42</p>
-                                <p className="text-sm text-gray-400">Reviews Escritas</p>
+                            
+                            {/* Seção de Estatísticas */}
+                            <div className="border-t border-gray-700/50 pt-8">
+                                <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Estatísticas</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div className="bg-gray-800/50 p-4 rounded-lg"><p className="text-3xl font-bold text-white">128</p><p className="text-sm text-gray-400">Filmes</p></div>
+                                    <div className="bg-gray-800/50 p-4 rounded-lg"><p className="text-3xl font-bold text-white">42</p><p className="text-sm text-gray-400">Reviews</p></div>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Coluna Lateral (Direita) */}
+                        <div className="lg:col-span-1 space-y-4">
+                            {isProfileLoading ? (
+                                <div className="bg-gray-800/50 p-4 rounded-lg animate-pulse h-32" />
+                            ) : (
+                                <WatchlistPreview movies={watchlistPreview} totalCount={watchlistCount} />
+                            )}
+                        </div>
+
                     </div>
                 </div>
             </div>
 
+            {/* Modais */}
             <AvatarSelectionModal isOpen={isAvatarModalOpen} onClose={() => setIsAvatarModalOpen(false)} onAvatarSelect={handleAvatarUpdate} />
             <MovieSearchModal isOpen={isBannerSearchModalOpen} onClose={() => setIsBannerSearchModalOpen(false)} onMovieSelect={handleMovieSelectedForBanner} />
             <BackdropSelectionModal 
@@ -179,6 +264,11 @@ export default function UserProfilePage() {
                 movie={selectedMovieForBackdrop}
                 backdrops={availableBackdrops}
                 onBackdropSelect={handleBackdropSelected}
+            />
+            <MovieSearchModal 
+                isOpen={isFavoriteSearchModalOpen}
+                onClose={() => setIsFavoriteSearchModalOpen(false)}
+                onMovieSelect={handleFavoriteMovieSelect}
             />
         </>
     );

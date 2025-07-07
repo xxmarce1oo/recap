@@ -9,7 +9,8 @@ import HomePage from './pages/HomePage'
 import MovieDetailsPage from './pages/MovieDetailsPage'
 import AboutPage from './pages/AboutPage'
 import UserProfilePage from './pages/UserProfilePage'
-import ListPage from './pages/ListPage' // ✅ 1. Importe a nova página
+import ListPage from './pages/ListPage'
+import WatchlistPage from './pages/WatchlistPage' // Importe a página
 
 import { AuthProvider } from './contexts/AuthContext'
 import './styles/index.css'
@@ -23,9 +24,8 @@ const router = createBrowserRouter([
         index: true,
         element: <HomePage />,
       },
-      // ✅ 2. Adicione a nova rota dinâmica aqui
       {
-        path: 'movies/:listType', // ex: /movies/now_playing ou /movies/top_rated
+        path: 'movies/:listType',
         element: <ListPage />,
       },
       {
@@ -40,6 +40,11 @@ const router = createBrowserRouter([
         path: 'profile',
         element: <UserProfilePage />,
       },
+      // Adicione a nova rota da watchlist aqui
+      {
+        path: 'watchlist',
+        element: <WatchlistPage />
+      }
     ]
   }
 ])

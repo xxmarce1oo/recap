@@ -2,26 +2,21 @@
 
 import { supabase } from '../lib/supabaseClient';
 
-// Função para atualizar a URL do avatar de um usuário específico
+// --- Funções de Avatar e Banner (sem alterações) ---
+
 export const updateAvatarUrl = async (userId: string, avatarUrl: string) => {
   const { data, error } = await supabase
     .from('profiles')
     .update({ avatar_url: avatarUrl })
     .eq('id', userId);
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
   
-  // Também é uma boa prática atualizar os metadados do usuário na autenticação
-  // para que a nova imagem apareça imediatamente em outros lugares.
   const { data: userUpdateData, error: userUpdateError } = await supabase.auth.updateUser({
     data: { avatar_url: avatarUrl }
-  })
+  });
 
-  if (userUpdateError) {
-    throw userUpdateError;
-  }
+  if (userUpdateError) throw userUpdateError;
 
   return { data, userUpdateData };
 };
@@ -42,6 +37,24 @@ export const updateProfileBanner = async (
       .eq('id', userId);
   
     if (error) throw error;
+};
+
+
+// ✅ FUNÇÃO NOVA E SIMPLIFICADA
+// Atualiza uma única coluna de filme favorito com base no índice do slot.
+export const updateFavoriteMovieSlot = async (userId: string, slotIndex: number, movieId: number | null) => {
+  // Cria um objeto de atualização dinâmico. Ex: { fav_movie_id_2: 12345 }
+  const updatePayload = {
+    [`fav_movie_id_${slotIndex + 1}`]: movieId,
   };
 
+  const { error } = await supabase
+    .from('profiles')
+    .update(updatePayload) // Envia o payload simples. Ex: { fav_movie_id_1: 752 }
+    .eq('id', userId);
   
+  if (error) {
+    console.error(`Erro ao atualizar o slot ${slotIndex + 1}:`, error);
+    throw error;
+  }
+};

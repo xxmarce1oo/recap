@@ -7,6 +7,8 @@ import { Movie } from '../models/movie';
 import { IoIosImages } from 'react-icons/io';
 import MovieActions from '../components/MovieActions'; 
 import ReviewModal from '../components/ReviewModal';
+import { useAuth } from '../contexts/AuthContext';
+import { addMovieToWatchlist, removeMovieFromWatchlist, isMovieInWatchlist } from '../services/watchlistService';
 
 const ProviderItem = ({ provider, id }: { provider: any, id: string | undefined }) => {
     const providerDetails = provider.provider || provider;
@@ -20,10 +22,13 @@ const ProviderItem = ({ provider, id }: { provider: any, id: string | undefined 
 }
 
 export default function MovieDetailsPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const movieId = Number(id);
+  
   const [movie, setMovie] = useState<Movie | null>(null);
   const [credits, setCredits] = useState<any>(null);
-  const [releaseDates, setReleaseDates] = useState<any[]>([]); // ✅ Garante que o estado seja populado corretamente
+  const [releaseDates, setReleaseDates] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [backdrops, setBackdrops] = useState<any[]>([]);
@@ -35,6 +40,10 @@ export default function MovieDetailsPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
+  // Estados da Watchlist
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [isWatchlistLoading, setIsWatchlistLoading] = useState(true);
+
   useEffect(() => {
     window.scrollTo(0, 0); 
     const fetchMovieData = async () => {
@@ -44,14 +53,14 @@ export default function MovieDetailsPage() {
           movieData, providersData, videosData,
           creditsData, releaseDatesData, imagesData
         ] = await Promise.all([
-          getMovieDetails(Number(id)), getMovieProviders(Number(id)),
-          getMovieVideos(Number(id)), getMovieCredits(Number(id)),
-          getMovieReleaseDates(Number(id)), getMovieImages(Number(id)),
+          getMovieDetails(movieId), getMovieProviders(movieId),
+          getMovieVideos(movieId), getMovieCredits(movieId),
+          getMovieReleaseDates(movieId), getMovieImages(movieId),
         ]);
         
         setMovie(movieData);
         setCredits(creditsData);
-        setReleaseDates(releaseDatesData.results); // ✅ Garante que o estado seja populado corretamente
+        setReleaseDates(releaseDatesData.results);
         setProviders(providersData);
         setVideos(videosData.filter((video: any) => video.type === 'Trailer'));
         setBackdrops(imagesData.backdrops || []);
@@ -64,7 +73,42 @@ export default function MovieDetailsPage() {
       }
     };
     fetchMovieData();
-  }, [id]);
+  }, [movieId]);
+
+  // Efeito para verificar o status da watchlist
+  useEffect(() => {
+    if (!user) {
+      setIsWatchlistLoading(false);
+      return;
+    }
+    
+    setIsWatchlistLoading(true);
+    isMovieInWatchlist(user.id, movieId)
+      .then(status => setIsInWatchlist(status))
+      .catch(console.error)
+      .finally(() => setIsWatchlistLoading(false));
+  }, [user, movieId]);
+
+  // Função para adicionar/remover da watchlist
+  const handleToggleWatchlist = async () => {
+    if (!user || !movie || isWatchlistLoading) return;
+
+    setIsWatchlistLoading(true);
+    try {
+      if (isInWatchlist) {
+        await removeMovieFromWatchlist(user.id, movie.id);
+        setIsInWatchlist(false);
+      } else {
+        await addMovieToWatchlist(user.id, movie.id);
+        setIsInWatchlist(true);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Não foi possível atualizar a watchlist. Tente novamente.');
+    } finally {
+      setIsWatchlistLoading(false);
+    }
+  };
 
   const changeBackdrop = () => {
     if (backdrops.length > 1) {
@@ -143,7 +187,6 @@ export default function MovieDetailsPage() {
                 Assistir Trailer
               </a>
             )}
-            {/* ✅ RESTAURADO: Seção "Onde Assistir" completa */}
             {providers.length > 0 ? (
               <div className="bg-gray-800 p-4 rounded-lg">
                 <h2 className="text-lg font-semibold mb-3">Onde Assistir</h2>
@@ -191,7 +234,13 @@ export default function MovieDetailsPage() {
             </div>
             
             <div className="my-6">
-              <MovieActions onReviewClick={() => setIsReviewModalOpen(true)} />
+              <MovieActions 
+                onReviewClick={() => setIsReviewModalOpen(true)}
+                isAuth={!!user}
+                isInWatchlist={isInWatchlist}
+                onWatchlistClick={handleToggleWatchlist}
+                isWatchlistLoading={isWatchlistLoading}
+              />
             </div>
 
             <p className="text-gray-300 mb-6 leading-relaxed">{movie.overview}</p>
@@ -208,7 +257,6 @@ export default function MovieDetailsPage() {
             </div>
 
             <div className="mt-8 border-t border-gray-800 pt-6">
-                {/* ✅ RESTAURADO: Botões e seções expansíveis de Elenco, Equipe e Datas */}
                 <div className="flex gap-4 flex-wrap">
                     <button onClick={() => toggleSection('cast')} className={`px-4 py-2 rounded-lg transition-colors ${expandedSection === 'cast' ? 'bg-cyan-500 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}>Elenco</button>
                     <button onClick={() => toggleSection('crew')} className={`px-4 py-2 rounded-lg transition-colors ${expandedSection === 'crew' ? 'bg-cyan-500 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}>Equipe Técnica</button>
@@ -221,7 +269,6 @@ export default function MovieDetailsPage() {
             </div>
 
 
-            {/* Seção de Avaliações da Comunidade (Mock) */}
             <div className="mt-8 border-t border-gray-800 pt-6">
                 <h3 className="text-xl font-bold text-white mb-4">Avaliações da Comunidade</h3>
                 <div className="space-y-4">
