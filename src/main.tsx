@@ -7,8 +7,10 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import HomePage from './pages/HomePage'
 import MovieDetailsPage from './pages/MovieDetailsPage'
-import AboutPage from './pages/AboutPage' // ✅ 1. Importe a nova página
+import AboutPage from './pages/AboutPage'
+import UserProfilePage from './pages/UserProfilePage' // ✅ 1. Importe a nova página
 
+import { AuthProvider } from './contexts/AuthContext'
 import './styles/index.css'
 
 const router = createBrowserRouter([
@@ -25,9 +27,13 @@ const router = createBrowserRouter([
         element: <MovieDetailsPage />,
       },
       {
-        // ✅ 2. Adicione a nova rota aqui
         path: 'about',
         element: <AboutPage />,
+      },
+      // ✅ 2. Adicione a nova rota do perfil aqui
+      {
+        path: 'profile',
+        element: <UserProfilePage />,
       },
     ]
   }
@@ -35,6 +41,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>,
 )

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
+    "@supabase/supabase-js": "^2.50.3",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.10.0",
     "date-fns": "^4.1.0",
@@ -20,6 +21,7 @@
     "react-router-dom": "^7.6.3"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",

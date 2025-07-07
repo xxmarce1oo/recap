@@ -141,3 +141,11 @@ export const getPopularMovies = async (): Promise<ApiResponse<Movie>> => {
   )
   return await response.json()
 }
+
+export const searchMovies = async (query: string): Promise<ApiResponse<Movie>> => {
+  if (!query) return { page: 1, results: [], total_pages: 0, total_results: 0 };
+  const response = await fetch(
+    `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=pt-BR`
+  );
+  return await response.json();
+};

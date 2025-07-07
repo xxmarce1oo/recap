@@ -6,11 +6,9 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // ✅ 2. ADICIONE A NOVA FAMÍLIA DE FONTES AQUI
       fontFamily: {
-        sans: ['Montserrat', 'sans-serif'], // Define 'Quicksand' como a fonte padrão sans-serif
+        sans: ['Montserrat', 'sans-serif'],
       },
-      // Suas outras extensões de cores continuam aqui...
       colors: {
         gray: {
           50: '#f9fafb',
@@ -23,10 +21,29 @@ module.exports = {
           700: '#374151',
           800: '#1f2937',
           900: '#111827',
+          950: '#030712' // Adicionando um tom extra escuro
         }
+      },
+      // ✅ NOVA SEÇÃO DE ANIMAÇÃO
+      keyframes: {
+        'gentle-bounce': {
+          '0%, 100%': {
+            transform: 'translateY(-10%)',
+            animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)'
+          },
+          '50%': {
+            transform: 'translateY(0)',
+            animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)'
+          },
+        }
+      },
+      animation: {
+        'gentle-bounce': 'gentle-bounce 2s infinite',
       }
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'), // Verifique se este plugin está aqui, caso use a classe 'prose'
+  ],
   darkMode: 'class',
 }
