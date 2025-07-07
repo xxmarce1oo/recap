@@ -21,7 +21,6 @@ export default function UserProfilePage() {
     const [isBackdropSelectModalOpen, setIsBackdropSelectModalOpen] = useState(false);
 
     // Estados do Banner
-    const [bannerMovie, setBannerMovie] = useState<Movie | null>(null);
     const [bannerBackdropPath, setBannerBackdropPath] = useState<string | null>(null);
     const [bannerPosition, setBannerPosition] = useState<string>('center');
     const [selectedMovieForBackdrop, setSelectedMovieForBackdrop] = useState<Movie | null>(null);
@@ -42,60 +41,37 @@ export default function UserProfilePage() {
         if (!user) return;
         setIsProfileLoading(true);
         try {
-            // Busca dados do perfil do Supabase
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('banner_movie_id, banner_backdrop_path, banner_position, fav_movie_id_1, fav_movie_id_2, fav_movie_id_3, fav_movie_id_4')
                 .eq('id', user.id)
                 .single();
 
-            // Busca IDs da watchlist do Supabase
             const watchlistIds = await getWatchlist(user.id);
             setWatchlistCount(watchlistIds.length);
 
-            // Monta um array de promessas para buscar todos os dados de filmes da API TMDb em paralelo
-            const movieDetailPromises = [];
-
-            if (profileData?.banner_movie_id) {
-                movieDetailPromises.push(getMovieDetails(profileData.banner_movie_id));
-            }
-
-            const favIds = [profileData?.fav_movie_id_1, profileData?.fav_movie_id_2, profileData?.fav_movie_id_3, profileData?.fav_movie_id_4];
-            favIds.forEach(id => {
-                if (id) movieDetailPromises.push(getMovieDetails(id));
-            });
-
-            if (watchlistIds.length > 0) {
-                const previewIds = watchlistIds.slice(0, 5);
-                movieDetailPromises.push(...previewIds.map(id => getMovieDetails(id)));
-            }
-            
-            // Com os dados de perfil e watchlist em mãos, buscamos os detalhes dos filmes
             if (profileData) {
-                const favAndWatchlistIds = [
-                    profileData.fav_movie_id_1,
-                    profileData.fav_movie_id_2,
-                    profileData.fav_movie_id_3,
-                    profileData.fav_movie_id_4,
-                    ...watchlistIds.slice(0, 5) // Pega somente os 5 primeiros para a pré-visualização
-                ].filter(id => id !== null) as number[];
+                if (profileData.banner_backdrop_path) {
+                    setBannerBackdropPath(profileData.banner_backdrop_path);
+                    setBannerPosition(profileData.banner_position || 'center');
+                }
 
-                const uniqueIds = [...new Set(favAndWatchlistIds)]; // Evita buscas repetidas
-                const movieDetails = await Promise.all(uniqueIds.map(id => getMovieDetails(id)));
+                const favIds = [profileData.fav_movie_id_1, profileData.fav_movie_id_2, profileData.fav_movie_id_3, profileData.fav_movie_id_4];
+                const previewWatchlistIds = watchlistIds.slice(0, 5);
+                const allIds = [...favIds, ...previewWatchlistIds].filter(id => id !== null) as number[];
+                const uniqueIds = [...new Set(allIds)];
 
-                // Cria um mapa para fácil acesso aos detalhes dos filmes
-                const movieMap = new Map<number, Movie>();
-                movieDetails.forEach(movie => movieMap.set(movie.id, movie));
+                if (uniqueIds.length > 0) {
+                    const movieDetails = await Promise.all(uniqueIds.map(id => getMovieDetails(id)));
+                    const movieMap = new Map(movieDetails.map(movie => [movie.id, movie]));
 
-                // Atualiza os estados com os dados corretos
-                const newFavorites = favIds.map(id => (id ? movieMap.get(id) : null) || null);
-                setFavoriteMovies(newFavorites);
+                    const newFavorites = favIds.map(id => (id ? movieMap.get(id) : null) || null);
+                    setFavoriteMovies(newFavorites);
 
-                const newWatchlistPreview = watchlistIds.slice(0, 5).map(id => movieMap.get(id)!);
-                setWatchlistPreview(newWatchlistPreview);
+                    const newWatchlistPreview = previewWatchlistIds.map(id => movieMap.get(id)!).filter(Boolean);
+                    setWatchlistPreview(newWatchlistPreview);
+                }
             }
-
-
         } catch (error) {
             console.error("Erro ao buscar dados do perfil:", error);
         } finally {
@@ -106,11 +82,12 @@ export default function UserProfilePage() {
     useEffect(() => {
         fetchProfileData();
     }, [fetchProfileData]);
-
+    
     const handleAvatarUpdate = async (url: string) => {
         if (!user) return;
         await updateAvatarUrl(user.id, url).catch(console.error);
     };
+
     const handleMovieSelectedForBanner = async (movie: Movie) => {
         setIsBannerSearchModalOpen(false);
         const images = await getMovieImages(movie.id);
@@ -118,18 +95,20 @@ export default function UserProfilePage() {
         setAvailableBackdrops(images.backdrops || []);
         setIsBackdropSelectModalOpen(true);
     };
+
     const handleBackdropSelected = async (backdropPath: string, position: string) => {
         if (!user || !selectedMovieForBackdrop) return;
         await updateProfileBanner(user.id, selectedMovieForBackdrop.id, backdropPath, position);
-        setBannerMovie(selectedMovieForBackdrop);
         setBannerBackdropPath(backdropPath);
         setBannerPosition(position);
         setIsBackdropSelectModalOpen(false);
     };
+
     const handleOpenFavoriteModal = (slotIndex: number) => {
         setEditingSlot(slotIndex);
         setIsFavoriteSearchModalOpen(true);
     };
+
     const handleFavoriteMovieSelect = async (movie: Movie) => {
         if (editingSlot === null || !user) return;
         const originalFavorites = [...favoriteMovies];
@@ -159,8 +138,8 @@ export default function UserProfilePage() {
 
     return (
         <>
-            <div className="bg-gray-900 text-white min-h-screen pt-16">
-                {/* Seção do Banner e Avatar */}
+            {/* ✅ O padding-top (pt-16) foi movido para este container principal */}
+            <div className="pt-16">
                 <div className="relative">
                     <div
                         className="w-full h-64 md:h-96 bg-cover group bg-center"
@@ -208,15 +187,11 @@ export default function UserProfilePage() {
                         </div>
                     </div>
                 </div>
-
+                
                 {/* Seção de Conteúdo Principal */}
                 <div className="container mx-auto px-6 md:px-12 pt-28 pb-16">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        
-                        {/* Coluna Principal (Esquerda) */}
                         <div className="lg:col-span-3 space-y-8">
-                            
-                            {/* Seção de Filmes Favoritos */}
                             <div>
                                 <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Filmes Favoritos</h2>
                                 {isProfileLoading ? (
@@ -231,8 +206,6 @@ export default function UserProfilePage() {
                                     </div>
                                 )}
                             </div>
-                            
-                            {/* Seção de Estatísticas */}
                             <div className="border-t border-gray-700/50 pt-8">
                                 <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">Estatísticas</h2>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -241,8 +214,6 @@ export default function UserProfilePage() {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Coluna Lateral (Direita) */}
                         <div className="lg:col-span-1 space-y-4">
                             {isProfileLoading ? (
                                 <div className="bg-gray-800/50 p-4 rounded-lg animate-pulse h-32" />
@@ -250,7 +221,6 @@ export default function UserProfilePage() {
                                 <WatchlistPreview movies={watchlistPreview} totalCount={watchlistCount} />
                             )}
                         </div>
-
                     </div>
                 </div>
             </div>
