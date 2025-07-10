@@ -14,7 +14,7 @@ export default function Layout() {
       
       {/* 3. A tag 'main' agora tem 'flex-grow', o que a força a "esticar" 
              e ocupar todo o espaço vertical disponível, empurrando o footer para baixo. */}
-      <main className="flex-grow">
+       <main className="flex-grow pt-16">
         <Outlet />
       </main>
       

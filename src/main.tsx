@@ -11,7 +11,7 @@ import AboutPage from './pages/AboutPage'
 import UserProfilePage from './pages/UserProfilePage'
 import ListPage from './pages/ListPage'
 import WatchlistPage from './pages/WatchlistPage' // Importe a página
-
+import DiaryPage from './pages/DiaryPage' // Importe a página
 import { AuthProvider } from './contexts/AuthContext'
 import './styles/index.css'
 
@@ -39,6 +39,10 @@ const router = createBrowserRouter([
       {
         path: 'profile',
         element: <UserProfilePage />,
+      },
+      { // ✅ ADICIONAR ESTA NOVA ROTA
+        path: 'diary', 
+        element: <DiaryPage />
       },
       // Adicione a nova rota da watchlist aqui
       {
