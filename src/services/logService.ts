@@ -125,3 +125,41 @@ export const getPaginatedEnrichedLogs = async (
 
   return { logs: enrichedLogs, totalPages };
 };
+// ficheiro: src/services/logService.ts
+// ... (o resto do ficheiro permanece igual)
+
+/**
+ * Busca todos os logs de um utilizador para um filme específico.
+ * @param userId - O ID do utilizador.
+ * @param movieId - O ID do filme.
+ * @returns Uma promessa que resolve para uma matriz de logs enriquecidos.
+ */
+export const getAllLogsForMovie = async (userId: string, movieId: number): Promise<EnrichedLog[]> => {
+  // Passo 1: Obter todos os logs para este utilizador e filme.
+  const { data: logs, error: logsError } = await supabase
+    .from('logs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('movie_id', movieId)
+    .order('watched_date', { ascending: false }); // Ordenar do mais recente para o mais antigo
+
+  if (logsError) {
+    console.error('Erro ao buscar logs do filme:', logsError);
+    throw logsError;
+  }
+
+  if (!logs || logs.length === 0) {
+    return [];
+  }
+
+  // Passo 2: Obter os detalhes do filme (só precisamos de o fazer uma vez).
+  const movieDetails = await getMovieDetails(movieId);
+
+  // Passo 3: Combinar os logs com os detalhes do filme.
+  const enrichedLogs: EnrichedLog[] = logs.map(log => ({
+    ...log,
+    movie: movieDetails,
+  }));
+
+  return enrichedLogs;
+};
