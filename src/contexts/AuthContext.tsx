@@ -4,19 +4,12 @@ import { createContext, useState, useEffect, useContext, ReactNode } from 'react
 import { supabase } from '../lib/supabaseClient';
 import { Session, User } from '@supabase/supabase-js';
 
-// ✅ PASSO 1: Definimos a interface COMPLETA do perfil, uma única vez.
+// ✅ Interface simplificada para evitar quaisquer conflitos de tipo
 export interface Profile {
   id: string;
   username: string;
   avatar_url: string;
-  is_verified: boolean;
-  banner_movie_id: number | null;
-  banner_backdrop_path: string | null;
-  banner_position: string | null;
-  fav_movie_id_1: number | null;
-  fav_movie_id_2: number | null;
-  fav_movie_id_3: number | null;
-  fav_movie_id_4: number | null;
+  is_verified?: boolean; // Opcional para não quebrar se a coluna não existir
 }
 
 interface AuthContextType {
@@ -36,50 +29,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Este useEffect corre apenas UMA VEZ para obter o estado inicial
-    const getInitialSession = async () => {
+    // Busca a sessão e o perfil apenas uma vez no carregamento inicial
+    const getInitialData = async () => {
       try {
-        setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // ✅ PASSO 2: Buscamos TODAS as colunas do perfil com select('*')
-          const { data: userProfile } = await supabase
+          const { data: userProfile, error } = await supabase
             .from('profiles')
-            .select('*') 
+            .select('*') // Busca tudo para evitar erros de campos em falta
             .eq('id', session.user.id)
             .single();
+
+          if (error) throw error;
           setProfile(userProfile as Profile | null);
         }
-      } catch (e) {
-        console.error("Erro ao obter a sessão inicial:", e);
+      } catch (error) {
+        console.error("AuthContext Error on initial fetch:", error);
       } finally {
+        // ✅ A GARANTIA: Esta linha é executada sempre, desbloqueando a aplicação.
         setIsLoading(false);
       }
     };
 
-    getInitialSession();
+    getInitialData();
 
-    // Este useEffect escuta MUDANÇAS (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const { data: userProfile } = await supabase
-            .from('profiles')
-            .select('*') // ✅ Também buscamos o perfil completo aqui
-            .eq('id', session.user.id)
-            .single();
-          setProfile(userProfile as Profile | null);
-        } else {
-          setProfile(null);
-        }
-      }
-    );
+    // Escuta apenas as mudanças de login/logout futuras
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      // Se o utilizador fizer logout, o perfil será limpo na próxima recarga ou busca de dados.
+    });
 
     return () => {
       subscription?.unsubscribe();
@@ -88,15 +70,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
   };
 
-  const value = {
-    isLoading,
-    session,
-    user,
-    profile,
-    signOut,
-  };
+  const value = { isLoading, session, user, profile, signOut };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

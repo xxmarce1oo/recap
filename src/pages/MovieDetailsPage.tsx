@@ -1,15 +1,14 @@
-// ficheiro: src/pages/MovieDetailsPage.tsx
+// arquivo: src/pages/MovieDetailsPage.tsx
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getMovieDetails, getMovieProviders, getMovieVideos, getMovieCredits, getMovieReleaseDates, getMovieImages } from '../services/tmdbService';
 import { useEffect, useState } from 'react';
 import { Movie } from '../models/movie';
 import { IoIosImages } from 'react-icons/io';
-import MovieActions from '../components/MovieActions';
+import MovieActions from '../components/MovieActions'; 
 import ReviewModal from '../components/ReviewModal';
 import { useAuth } from '../contexts/AuthContext';
 import { addMovieToWatchlist, removeMovieFromWatchlist, isMovieInWatchlist } from '../services/watchlistService';
-import { getAllLogsForMovie } from '../services/logService'; // ✅ Importar a função de contagem
 
 const ProviderItem = ({ provider, id }: { provider: any, id: string | undefined }) => {
     const providerDetails = provider.provider || provider;
@@ -40,24 +39,16 @@ export default function MovieDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  // Estados da Watchlist
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [isWatchlistLoading, setIsWatchlistLoading] = useState(true);
-
-  // ✅ NOVO ESTADO PARA GUARDAR A CONTAGEM DE LOGS
-  const [logCount, setLogCount] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0); 
     const fetchMovieData = async () => {
       try {
         setLoading(true);
-
-        // ✅ LÓGICA PARA VERIFICAR O HISTÓRICO DO FILME
-        if (user && movieId) {
-          const count = await getAllLogsForMovie(user.id, movieId);
-          setLogCount(count.length);
-        }
-
         const [
           movieData, providersData, videosData,
           creditsData, releaseDatesData, imagesData
@@ -82,8 +73,9 @@ export default function MovieDetailsPage() {
       }
     };
     fetchMovieData();
-  }, [movieId, user]); // ✅ Adicionar 'user' às dependências
+  }, [movieId]);
 
+  // Efeito para verificar o status da watchlist
   useEffect(() => {
     if (!user) {
       setIsWatchlistLoading(false);
@@ -97,6 +89,7 @@ export default function MovieDetailsPage() {
       .finally(() => setIsWatchlistLoading(false));
   }, [user, movieId]);
 
+  // Função para adicionar/remover da watchlist
   const handleToggleWatchlist = async () => {
     if (!user || !movie || isWatchlistLoading) return;
 
@@ -133,7 +126,7 @@ export default function MovieDetailsPage() {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  if (loading) return <div className="flex justify-center items-center h-screen"><p>A carregar...</p></div>;
+  if (loading) return <div className="flex justify-center items-center h-screen"><p>Carregando...</p></div>;
   if (error) return <div className="flex justify-center items-center h-screen"><p>{error}</p></div>;
   if (!movie) return <div className="flex justify-center items-center h-screen"><p>Filme não encontrado.</p></div>;
 
@@ -250,20 +243,10 @@ export default function MovieDetailsPage() {
               />
             </div>
 
-            {/* ✅ LINK PARA O HISTÓRICO DO FILME */}
-            {logCount > 0 && (
-              <div className="bg-cyan-900/40 border border-cyan-700/50 text-cyan-200 text-sm rounded-lg p-3 mb-6 text-center">
-                Você registou este filme {logCount} vez(es).{' '}
-                <Link to={`/movie/${movieId}/diary`} className="font-bold hover:underline">
-                  Ver o seu histórico
-                </Link>
-              </div>
-            )}
-
             <p className="text-gray-300 mb-6 leading-relaxed">{movie.overview}</p>
             
             <div className="border-t border-gray-800 pt-6">
-                <h3 className="text-xl font-bold text-white mb-4">Géneros</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Gêneros</h3>
                 <div className="flex flex-wrap gap-2">
                   {movie.genres?.map(genre => (
                     <span key={genre.id} className="bg-gray-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -276,7 +259,7 @@ export default function MovieDetailsPage() {
             <div className="mt-8 border-t border-gray-800 pt-6">
                 <div className="flex gap-4 flex-wrap">
                     <button onClick={() => toggleSection('cast')} className={`px-4 py-2 rounded-lg transition-colors ${expandedSection === 'cast' ? 'bg-cyan-500 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}>Elenco</button>
-                    <button onClick={() => toggleSection('crew')} className={`px-4 py-2 rounded-lg transition-colors ${expandedSection === 'crew' ? 'bg-cyan-500 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}>Equipa Técnica</button>
+                    <button onClick={() => toggleSection('crew')} className={`px-4 py-2 rounded-lg transition-colors ${expandedSection === 'crew' ? 'bg-cyan-500 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}>Equipe Técnica</button>
                     <button onClick={() => toggleSection('release')} className={`px-4 py-2 rounded-lg transition-colors ${expandedSection === 'release' ? 'bg-cyan-500 text-white' : 'bg-gray-800 hover:bg-gray-700'}`}>Datas de Lançamento</button>
                 </div>
 
@@ -284,6 +267,7 @@ export default function MovieDetailsPage() {
                 {expandedSection === 'crew' && ( <div className="mt-4 bg-gray-800 p-4 rounded-lg"><h3 className="font-semibold mb-3 text-lg">Direção e Roteiro</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{credits?.crew.filter((p: any) => ['Director', 'Writer', 'Screenplay'].includes(p.job)).map((person: any) => ( <div key={`${person.id}-${person.job}`} className="mb-2"><p className="font-medium text-white">{person.name}</p><p className="text-sm text-gray-400">{person.job}</p></div> ))}</div></div> )}
                 {expandedSection === 'release' && ( <div className="mt-4 bg-gray-800 p-4 rounded-lg"><h3 className="font-semibold mb-3 text-lg">Datas por País</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{releaseDates?.filter((c: any) => c.release_dates?.length > 0).map((country: any) => ( <div key={country.iso_3166_1} className="mb-2"><p className="font-medium text-white">{country.iso_3166_1}</p><p className="text-sm text-gray-400">{new Date(country.release_dates[0].release_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p></div> ))}</div></div> )}
             </div>
+
 
             <div className="mt-8 border-t border-gray-800 pt-6">
                 <h3 className="text-xl font-bold text-white mb-4">Avaliações da Comunidade</h3>

@@ -3,23 +3,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getPaginatedEnrichedLogs, EnrichedLog, SortOptions, FilterOptions } from '../services/logService';
-import ReviewFeedCard from '../components/ReviewFeedCard'; // ✅ USANDO O NOVO CARTÃO DE FEED
+import DiaryGridItem from '../components/DiaryGridItem';
 import Pagination from '../components/Pagination';
-import FilterControls from '../components/FilterControls';
+import FilterControls from '../components/FilterControls'; // ✅ IMPORTAMOS OS FILTROS
 import { Link } from 'react-router-dom';
 
 export default function DiaryPage() {
   const { user } = useAuth();
-  // ... (estados existentes)
   const [logs, setLogs] = useState<EnrichedLog[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ NOVOS ESTADOS PARA FILTRO E ORDENAÇÃO
   const [sort, setSort] = useState<SortOptions>({ by: 'watched_date', order: 'desc' });
   const [filters, setFilters] = useState<FilterOptions>({});
-
 
   const fetchLogs = useCallback((pageToFetch: number, currentSort: SortOptions, currentFilters: FilterOptions) => {
     if (!user) return;
@@ -27,7 +26,7 @@ export default function DiaryPage() {
     setIsLoading(true);
     setError(null);
 
-    getPaginatedEnrichedLogs(user.id, pageToFetch, 10, currentSort, currentFilters) // 10 por página é bom para um feed
+    getPaginatedEnrichedLogs(user.id, pageToFetch, 32, currentSort, currentFilters)
       .then(data => {
         setLogs(data.logs);
         setTotalPages(data.totalPages);
@@ -42,27 +41,27 @@ export default function DiaryPage() {
       });
   }, [user]);
   
+  // ✅ O useEffect agora reage a mudanças na página, ordenação ou filtros
   useEffect(() => {
     fetchLogs(currentPage, sort, filters);
   }, [currentPage, sort, filters, fetchLogs]);
-  
-  // ... (resto das funções handle... continua igual)
+
   const handlePageChange = (newPage: number) => {
     window.scrollTo(0, 0);
     setCurrentPage(newPage);
   };
   
+  // ✅ FUNÇÕES PARA ATUALIZAR O ESTADO A PARTIR DOS CONTROLOS
   const handleSortChange = (newSort: SortOptions) => {
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset para a primeira página ao mudar a ordenação
     setSort(newSort);
   };
 
   const handleFilterChange = (newFilters: FilterOptions) => {
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset para a primeira página ao mudar o filtro
     setFilters(newFilters);
   };
-
-
+  
   if (!user && isLoading) {
     return <div className="text-center py-24">A carregar...</div>;
   }
@@ -86,6 +85,7 @@ export default function DiaryPage() {
         <p className="text-gray-400 mt-2">Todos os filmes que você já registou.</p>
       </div>
 
+      {/* ✅ ADICIONAMOS O COMPONENTE DE FILTROS */}
       <FilterControls 
         sortOptions={sort}
         filterOptions={filters}
@@ -99,15 +99,9 @@ export default function DiaryPage() {
         <p className="text-center text-lg text-red-500">{error}</p>
       ) : logs.length > 0 ? (
         <>
-          {/* ✅ LAYOUT DE FEED VERTICAL */}
-          <div className="space-y-6">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
             {logs.map((log) => (
-              <ReviewFeedCard 
-                key={log.id} 
-                log={log} 
-                username={user?.user_metadata?.username || 'Usuário'}
-                userAvatarUrl={user?.user_metadata?.avatar_url}
-              />
+              <DiaryGridItem key={log.id} log={log} />
             ))}
           </div>
 
