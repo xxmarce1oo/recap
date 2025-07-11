@@ -17,7 +17,7 @@ export default function Header() {
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
-
+  console.log('[Header] Renderizando com os valores do contexto:', { isLoading, user });
   const handleSignInClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setLoginError(null);
