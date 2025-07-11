@@ -10,8 +10,11 @@ import MovieDetailsPage from './pages/MovieDetailsPage'
 import AboutPage from './pages/AboutPage'
 import UserProfilePage from './pages/UserProfilePage'
 import ListPage from './pages/ListPage'
-import WatchlistPage from './pages/WatchlistPage' // Importe a página
-import DiaryPage from './pages/DiaryPage' // Importe a página
+import WatchlistPage from './pages/WatchlistPage'
+import MembersPage from './pages/MembersPage' // ✅ Importar a página
+// import MovieDiaryPage from './pages/MovieDiaryPage'
+import DiaryPage from './pages/DiaryPage'
+
 import { AuthProvider } from './contexts/AuthContext'
 import './styles/index.css'
 
@@ -20,35 +23,22 @@ const router = createBrowserRouter([
     path: '/',
     element: <Layout />,
     children: [
+      { index: true, element: <HomePage /> },
+      { path: 'movies/:listType', element: <ListPage /> },
+      { path: 'movie/:id', element: <MovieDetailsPage /> },
+      // { path: 'movie/:id/diary', element: <MovieDiaryPage /> },
+      { path: 'about', element: <AboutPage /> },
+      { path: 'diary', element: <DiaryPage /> },
+      { path: 'watchlist', element: <WatchlistPage /> },
+      
+      // ✅ ROTA DE MEMBROS ADICIONADA
       {
-        index: true,
-        element: <HomePage />,
+        path: 'members',
+        element: <MembersPage />,
       },
-      {
-        path: 'movies/:listType',
-        element: <ListPage />,
-      },
-      {
-        path: 'movie/:id',
-        element: <MovieDetailsPage />,
-      },
-      {
-        path: 'about',
-        element: <AboutPage />,
-      },
-      {
-        path: 'profile',
-        element: <UserProfilePage />,
-      },
-      { // ✅ ADICIONAR ESTA NOVA ROTA
-        path: 'diary', 
-        element: <DiaryPage />
-      },
-      // Adicione a nova rota da watchlist aqui
-      {
-        path: 'watchlist',
-        element: <WatchlistPage />
-      }
+      
+      { path: 'profile/:username', element: <UserProfilePage /> },
+      { path: 'profile', element: <UserProfilePage /> },
     ]
   }
 ])

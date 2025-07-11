@@ -125,3 +125,29 @@ export const getPaginatedEnrichedLogs = async (
 
   return { logs: enrichedLogs, totalPages };
 };
+export const getAllLogsForMovie = async (userId: string, movieId: number): Promise<EnrichedLog[]> => {
+  const { data: logs, error: logsError } = await supabase
+    .from('logs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('movie_id', movieId)
+    .order('watched_date', { ascending: false });
+
+  if (logsError) {
+    console.error('Erro ao buscar logs do filme:', logsError);
+    throw logsError;
+  }
+
+  if (!logs || logs.length === 0) {
+    return [];
+  }
+
+  const movieDetails = await getMovieDetails(movieId);
+
+  const enrichedLogs: EnrichedLog[] = logs.map(log => ({
+    ...log,
+    movie: movieDetails,
+  }));
+
+  return enrichedLogs;
+};
