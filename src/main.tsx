@@ -16,6 +16,9 @@ import MembersPage from './pages/MembersPage' // ✅ Importar a página
 import FollowersPage from './pages/FollowersPage'
 import FollowingPage from './pages/FollowingPage'
 import DiaryPage from './pages/DiaryPage'
+import UserListsPage from './pages/UserListsPage'
+import ListPageDetails from './pages/ListPageDetails'
+
 
 import { AuthProvider } from './contexts/AuthContext'
 import './styles/index.css'
@@ -46,6 +49,8 @@ const router = createBrowserRouter([
       { path: 'profile/followers', element: <FollowersPage /> }, // Rota para os próprios seguidores
       { path: 'profile/:username/following', element: <FollowingPage /> },
       { path: 'profile/following', element: <FollowingPage /> }, // Rota para quem o próprio usuário segue
+      { path: 'lists', element: <UserListsPage /> },
+      { path: 'lists/:listId', element: <ListPageDetails /> }, // Rota temporária para detalhes da lista (será desenvolvida depois)
     ]
   }
 ])

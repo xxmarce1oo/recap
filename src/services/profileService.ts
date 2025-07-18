@@ -82,6 +82,20 @@ export const getProfileByUsername = async (username: string) => {
   return data;
 };
 
+export const getProfileById = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url') // Seleciona apenas o que é necessário para MemberProfile
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error(`Erro ao buscar perfil pelo ID ${userId}:`, error);
+    throw new Error('Utilizador não encontrado.');
+  }
+  return data;
+};
+
 /**
  * Um utilizador (follower) começa a seguir outro (following).
  */
