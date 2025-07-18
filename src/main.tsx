@@ -13,6 +13,8 @@ import ListPage from './pages/ListPage'
 import WatchlistPage from './pages/WatchlistPage'
 import MembersPage from './pages/MembersPage' // ✅ Importar a página
 // import MovieDiaryPage from './pages/MovieDiaryPage'
+import FollowersPage from './pages/FollowersPage'
+import FollowingPage from './pages/FollowingPage'
 import DiaryPage from './pages/DiaryPage'
 
 import { AuthProvider } from './contexts/AuthContext'
@@ -39,6 +41,11 @@ const router = createBrowserRouter([
       
       { path: 'profile/:username', element: <UserProfilePage /> },
       { path: 'profile', element: <UserProfilePage /> },
+
+      { path: 'profile/:username/followers', element: <FollowersPage /> },
+      { path: 'profile/followers', element: <FollowersPage /> }, // Rota para os próprios seguidores
+      { path: 'profile/:username/following', element: <FollowingPage /> },
+      { path: 'profile/following', element: <FollowingPage /> }, // Rota para quem o próprio usuário segue
     ]
   }
 ])

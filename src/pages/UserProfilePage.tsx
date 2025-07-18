@@ -196,14 +196,24 @@ export default function UserProfilePage() {
                                 </div>
 
                                 <div className="flex justify-center gap-4 text-sm mt-2">
-                                    <span><strong className="text-white">{friendshipCounts.followers}</strong> <span className="text-gray-400">seguidores</span></span>
-                                    <span><strong className="text-white">{friendshipCounts.following}</strong> <span className="text-gray-400">a seguir</span></span>
+                                    <Link
+                                        to={`/profile/${profileUser.username}/followers`}
+                                        className="hover:text-white transition-colors"
+                                    >
+                                        <strong className="text-white">{friendshipCounts.followers}</strong> <span className="text-gray-400">seguidores</span>
+                                    </Link>
+                                    <Link
+                                        to={`/profile/${profileUser.username}/following`}
+                                        className="hover:text-white transition-colors"
+                                    >
+                                        <strong className="text-white">{friendshipCounts.following}</strong> <span className="text-gray-400">seguindo</span>
+                                    </Link>
                                 </div>
                             </div>
                             {!isOwnProfile && currentUser && (
                                 <div className="mt-4 pointer-events-auto">
                                     <button onClick={handleFollowToggle} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${isFollowing ? 'bg-gray-700 text-white hover:bg-red-600' : 'bg-cyan-500 text-white hover:bg-cyan-600'}`}>
-                                        {isFollowing ? 'A Seguir' : 'Seguir'}
+                                        {isFollowing ? 'Seguindo' : 'Seguir'}
                                     </button>
                                 </div>
                             )}
@@ -300,13 +310,11 @@ export default function UserProfilePage() {
                     <MovieSearchModal
                         isOpen={isBannerSearchModalOpen}
                         onClose={() => setIsBannerSearchModalOpen(false)}
-                        onMovieSelect={async (movie) => { // ALTERADO AQUI
+                        onMovieSelect={async (movie) => {
                             setSelectedMovieForBackdrop(movie);
                             setIsBannerSearchModalOpen(false);
-                            // --- Adicione esta lógica para buscar e definir os backdrops ---
                             const imagesData = await getMovieImages(movie.id);
                             setAvailableBackdrops(imagesData.backdrops || []);
-                            // -----------------------------------------------------------
                             setIsBackdropSelectModalOpen(true);
                         }}
                     />

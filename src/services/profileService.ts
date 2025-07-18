@@ -2,6 +2,13 @@
 
 import { supabase } from '../lib/supabaseClient';
 
+// ✅ Definição da interface MemberProfile para ser usada em todo o serviço e nas páginas
+export interface MemberProfile {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+}
+
 // --- Funções de Perfil (Avatar, Banner, Favoritos) ---
 
 export const updateAvatarUrl = async (userId: string, avatarUrl: string) => {
@@ -11,7 +18,7 @@ export const updateAvatarUrl = async (userId: string, avatarUrl: string) => {
     .eq('id', userId);
 
   if (error) throw error;
-  
+
   const { data: userUpdateData, error: userUpdateError } = await supabase.auth.updateUser({
     data: { avatar_url: avatarUrl }
   });
@@ -29,13 +36,13 @@ export const updateProfileBanner = async (
   ) => {
     const { error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         banner_movie_id: movieId,
         banner_backdrop_path: backdropPath,
         banner_position: position
       })
       .eq('id', userId);
-  
+
     if (error) throw error;
 };
 
@@ -48,7 +55,7 @@ export const updateFavoriteMovieSlot = async (userId: string, slotIndex: number,
     .from('profiles')
     .update(updatePayload)
     .eq('id', userId);
-  
+
   if (error) {
     console.error(`Erro ao atualizar o slot ${slotIndex + 1}:`, error);
     throw error;
@@ -116,7 +123,7 @@ export const checkFriendship = async (followerId: string, followingId:string): P
     console.error('Erro ao verificar amizade:', error);
     return false;
   }
-  
+
   return !!data;
 };
 
@@ -155,4 +162,78 @@ export const getAllProfiles = async () => {
     throw error;
   }
   return data;
+};
+
+// --- NOVAS FUNÇÕES PARA LISTAR SEGUIDORES E SEGUINDO ---
+
+/**
+ * Busca a lista de utilizadores que seguem o userId.
+ * Retorna uma lista simplificada de perfis (id, username, avatar_url).
+ */
+export const getFollowers = async (userId: string): Promise<MemberProfile[]> => {
+  // 1. Busca os IDs dos seguidores na tabela 'friendships'
+  const { data: friendshipData, error: friendshipError } = await supabase
+    .from('friendships')
+    .select('follower_id') // Seleciona apenas o ID do seguidor
+    .eq('following_id', userId); // O usuário atual é o "seguido"
+
+  if (friendshipError) {
+    console.error('Erro ao buscar IDs de seguidores:', friendshipError);
+    throw friendshipError;
+  }
+
+  if (!friendshipData || friendshipData.length === 0) {
+    return []; // Retorna um array vazio se não houver seguidores
+  }
+
+  const followerIds = friendshipData.map(item => item.follower_id);
+
+  // 2. Busca os detalhes dos perfis usando os IDs coletados
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url')
+    .in('id', followerIds); // Filtra perfis onde o ID está na lista de followerIds
+
+  if (profilesError) {
+    console.error('Erro ao buscar detalhes dos perfis dos seguidores:', profilesError);
+    throw profilesError;
+  }
+
+  return profilesData || [];
+};
+
+/**
+ * Busca a lista de utilizadores que o userId está seguindo.
+ * Realiza a busca em duas etapas para contornar o erro de relacionamento.
+ */
+export const getFollowing = async (userId: string): Promise<MemberProfile[]> => {
+  // 1. Busca os IDs dos usuários que o userId está seguindo na tabela 'friendships'
+  const { data: friendshipData, error: friendshipError } = await supabase
+    .from('friendships')
+    .select('following_id') // Seleciona apenas o ID do usuário seguido
+    .eq('follower_id', userId); // O usuário atual é o "seguidor"
+
+  if (friendshipError) {
+    console.error('Erro ao buscar IDs de usuários seguidos:', friendshipError);
+    throw friendshipError;
+  }
+
+  if (!friendshipData || friendshipData.length === 0) {
+    return []; // Retorna um array vazio se não estiver seguindo ninguém
+  }
+
+  const followingIds = friendshipData.map(item => item.following_id);
+
+  // 2. Busca os detalhes dos perfis usando os IDs coletados
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url')
+    .in('id', followingIds); // Filtra perfis onde o ID está na lista de followingIds
+
+  if (profilesError) {
+    console.error('Erro ao buscar detalhes dos perfis dos usuários seguidos:', profilesError);
+    throw profilesError;
+  }
+
+  return profilesData || [];
 };
