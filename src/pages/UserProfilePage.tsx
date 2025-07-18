@@ -15,10 +15,10 @@ import DiaryGridItem from '../components/DiaryGridItem';
 import StatsWidget from '../components/StatsWidget';
 
 // Serviços
-import { 
-    getProfileByUsername, 
-    updateAvatarUrl, 
-    updateProfileBanner, 
+import {
+    getProfileByUsername,
+    updateAvatarUrl,
+    updateProfileBanner,
     updateFavoriteMovieSlot,
     followUser,
     unfollowUser,
@@ -49,7 +49,7 @@ export default function UserProfilePage() {
     const { username } = useParams<{ username: string }>();
     const navigate = useNavigate();
     const { user: currentUser } = useAuth();
-    
+
     const [profileUser, setProfileUser] = useState<Profile | null>(null);
     const [isOwnProfile, setIsOwnProfile] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
@@ -112,7 +112,7 @@ export default function UserProfilePage() {
                 getRatingsDistribution(fetchedProfile.id),
                 getFriendshipCounts(fetchedProfile.id)
             ]);
-            
+
             setFilmCount(fetchedFilmCount);
             setReviewCount(fetchedReviewCount);
             setWatchlistCount(watchlistIds.length);
@@ -159,7 +159,7 @@ export default function UserProfilePage() {
             console.error("Erro ao seguir/deixar de seguir:", error);
         }
     };
-    
+
     if (isLoading) return <div className="text-center py-48">A carregar perfil...</div>;
     if (!profileUser) return <div className="text-center py-48">Utilizador não encontrado.</div>;
 
@@ -194,7 +194,7 @@ export default function UserProfilePage() {
                                         {profileUser.username}
                                     </h1>
                                 </div>
-                                
+
                                 <div className="flex justify-center gap-4 text-sm mt-2">
                                     <span><strong className="text-white">{friendshipCounts.followers}</strong> <span className="text-gray-400">seguidores</span></span>
                                     <span><strong className="text-white">{friendshipCounts.following}</strong> <span className="text-gray-400">a seguir</span></span>
@@ -210,7 +210,7 @@ export default function UserProfilePage() {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="container mx-auto px-6 md:px-12 pt-40 pb-16">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                         <div className="lg:col-span-3 space-y-8">
@@ -233,10 +233,10 @@ export default function UserProfilePage() {
                                 <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">FILMES FAVORITOS</h2>
                                 <div className="grid grid-cols-4 gap-4">
                                     {favoriteMovies.map((movie, index) => (
-                                        <FavoriteMovieSlot 
-                                            key={index} 
-                                            movie={movie} 
-                                            onSelectSlot={() => { if(isOwnProfile) { setEditingSlot(index); setIsFavoriteSearchModalOpen(true); } }} 
+                                        <FavoriteMovieSlot
+                                            key={index}
+                                            movie={movie}
+                                            onSelectSlot={() => { if (isOwnProfile) { setEditingSlot(index); setIsFavoriteSearchModalOpen(true); } }}
                                         />
                                     ))}
                                 </div>
@@ -253,7 +253,7 @@ export default function UserProfilePage() {
                                     <p className="text-sm text-gray-400">Reviews</p>
                                 </div>
                             </div>
-                            
+
                             {isLoading ? (
                                 <div className="bg-gray-800/50 p-4 rounded-lg h-32 animate-pulse" />
                             ) : (
@@ -271,35 +271,60 @@ export default function UserProfilePage() {
 
             {isOwnProfile && (
                 <>
-                    <AvatarSelectionModal 
-                        isOpen={isAvatarModalOpen} 
-                        onClose={() => setIsAvatarModalOpen(false)} 
-                        onAvatarSelect={async (url) => { 
+                    <AvatarSelectionModal
+                        isOpen={isAvatarModalOpen}
+                        onClose={() => setIsAvatarModalOpen(false)}
+                        onAvatarSelect={async (url) => {
                             if (!currentUser) return;
-                            await updateAvatarUrl(currentUser.id, url); 
-                            fetchProfileData(); 
-                        }} 
+                            await updateAvatarUrl(currentUser.id, url);
+                            fetchProfileData();
+                        }}
                     />
-                    <MovieSearchModal 
-                        isOpen={isBannerSearchModalOpen} 
-                        onClose={() => setIsBannerSearchModalOpen(false)} 
-                        onMovieSelect={(movie) => { setSelectedMovieForBackdrop(movie); setIsBannerSearchModalOpen(false); setIsBackdropSelectModalOpen(true); }} 
+                    <MovieSearchModal
+                        isOpen={isBannerSearchModalOpen}
+                        onClose={() => setIsBannerSearchModalOpen(false)}
+                        onMovieSelect={(movie) => { setSelectedMovieForBackdrop(movie); setIsBannerSearchModalOpen(false); setIsBackdropSelectModalOpen(true); }}
                     />
-                    <BackdropSelectionModal 
-                        isOpen={isBackdropSelectModalOpen} 
-                        onClose={() => setIsBackdropSelectModalOpen(false)} 
-                        movie={selectedMovieForBackdrop} 
-                        backdrops={availableBackdrops} 
-                        onBackdropSelect={async (path, pos) => { 
+                    <BackdropSelectionModal
+                        isOpen={isBackdropSelectModalOpen}
+                        onClose={() => setIsBackdropSelectModalOpen(false)}
+                        movie={selectedMovieForBackdrop}
+                        backdrops={availableBackdrops}
+                        onBackdropSelect={async (path, pos) => {
                             if (!currentUser || !selectedMovieForBackdrop) return;
-                            await updateProfileBanner(currentUser.id, selectedMovieForBackdrop.id, path, pos); 
+                            await updateProfileBanner(currentUser.id, selectedMovieForBackdrop.id, path, pos);
                             setIsBackdropSelectModalOpen(false);
-                            fetchProfileData(); 
-                        }} 
+                            fetchProfileData();
+                        }}
                     />
-                    <MovieSearchModal 
-                        isOpen={isFavoriteSearchModalOpen} 
-                        onClose={() => setIsFavoriteSearchModalOpen(false)} 
+                    <MovieSearchModal
+                        isOpen={isBannerSearchModalOpen}
+                        onClose={() => setIsBannerSearchModalOpen(false)}
+                        onMovieSelect={async (movie) => { // ALTERADO AQUI
+                            setSelectedMovieForBackdrop(movie);
+                            setIsBannerSearchModalOpen(false);
+                            // --- Adicione esta lógica para buscar e definir os backdrops ---
+                            const imagesData = await getMovieImages(movie.id);
+                            setAvailableBackdrops(imagesData.backdrops || []);
+                            // -----------------------------------------------------------
+                            setIsBackdropSelectModalOpen(true);
+                        }}
+                    />
+                    <BackdropSelectionModal
+                        isOpen={isBackdropSelectModalOpen}
+                        onClose={() => setIsBackdropSelectModalOpen(false)}
+                        movie={selectedMovieForBackdrop}
+                        backdrops={availableBackdrops}
+                        onBackdropSelect={async (path, pos) => {
+                            if (!currentUser || !selectedMovieForBackdrop) return;
+                            await updateProfileBanner(currentUser.id, selectedMovieForBackdrop.id, path, pos);
+                            setIsBackdropSelectModalOpen(false);
+                            fetchProfileData();
+                        }}
+                    />
+                    <MovieSearchModal
+                        isOpen={isFavoriteSearchModalOpen}
+                        onClose={() => setIsFavoriteSearchModalOpen(false)}
                         onMovieSelect={async (movie) => {
                             if (!currentUser || editingSlot === null) return;
                             await updateFavoriteMovieSlot(currentUser.id, editingSlot, movie.id);
