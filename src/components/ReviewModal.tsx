@@ -3,40 +3,46 @@
 import { Dialog } from '@headlessui/react';
 import { useState, useEffect, FormEvent, useCallback } from 'react';
 import { Movie } from '../models/movie';
-import { FaHeart, FaRegHeart, FaStar, FaTimes } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaStar, FaStarHalfAlt, FaRegStar, FaTimes } from 'react-icons/fa';
 import { IoIosImages } from 'react-icons/io';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
-// Importamos as nossas novas funções de serviço
 import { saveLog, getLogCountForMovie } from '../services/reviewService';
+import StarRatingDisplay from './StarRatingDisplay'; // Componente para exibir a nota com estrelas
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onSaveSuccess: () => void; // Propriedade necessária
   movie: Movie | null;
   posters: any[];
   currentPosterPath: string;
   onChangePoster: () => void;
 }
 
-export default function ReviewModal({ isOpen, onClose, movie, posters, currentPosterPath, onChangePoster }: Props) {
+export default function ReviewModal({
+  isOpen,
+  onClose,
+  onSaveSuccess,
+  movie,
+  posters,
+  currentPosterPath,
+  onChangePoster
+}: Props) {
   const { user } = useAuth();
 
-  // Estados do formulário (resetados para cada novo log)
   const [watchedOn, setWatchedOn] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isRewatch, setIsRewatch] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Efeito para verificar se é um 'rewatch' quando o modal abre
   const checkForRewatch = useCallback(async () => {
     if (!isOpen || !user || !movie) return;
-
     setLoading(true);
     try {
       const logCount = await getLogCountForMovie(user.id, movie.id);
@@ -51,8 +57,7 @@ export default function ReviewModal({ isOpen, onClose, movie, posters, currentPo
   useEffect(() => {
     checkForRewatch();
   }, [checkForRewatch]);
-  
-  // Limpa o formulário quando o modal é fechado para a próxima entrada
+
   useEffect(() => {
     if (!isOpen) {
       setRating(0);
@@ -84,9 +89,10 @@ export default function ReviewModal({ isOpen, onClose, movie, posters, currentPo
         isLiked,
         watchedDate: watchedOn,
         isRewatch,
+        posterPath: currentPosterPath || null, // Passa o caminho do pôster
       });
       alert('Log salvo com sucesso no seu diário!');
-      onClose();
+      onSaveSuccess(); // Chamando a função de sucesso
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -94,8 +100,19 @@ export default function ReviewModal({ isOpen, onClose, movie, posters, currentPo
     }
   };
 
+
+  // ✅ Nova função para calcular a nota precisa baseada na posição do mouse
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, width } = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - left;
+    const rawRating = (x / width) * 5;
+    // Arredonda para o 0.1 mais próximo (ex: 3.67 -> 3.7)
+    const preciseRating = Math.max(0.1, Math.ceil(rawRating * 10) / 10);
+    setHoverRating(Math.min(5, preciseRating)); // Garante que não passe de 5
+  };
+
   if (!movie) return null;
-  
+
   const imageUrl = currentPosterPath
     ? `https://image.tmdb.org/t/p/w500${currentPosterPath}`
     : 'https://via.placeholder.com/500x750?text=No+Image';
@@ -112,60 +129,69 @@ export default function ReviewModal({ isOpen, onClose, movie, posters, currentPo
                 <FaTimes size={20} />
               </button>
             </div>
-            
+
             {loading ? (
-                <div className="p-8 text-center">A verificar...</div>
+              <div className="p-8 text-center">A verificar...</div>
             ) : (
-                <>
+              <>
                 <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6">
-                    <div className="w-full md:w-1/3 flex-shrink-0 relative">
-                        <img src={imageUrl} alt={movie.title} className="w-full rounded-lg shadow-lg" />
-                        {posters.length > 1 && (
-                        <button type="button" onClick={onChangePoster} className="absolute top-2 right-2 bg-black/60 text-white p-2 rounded-full hover:bg-black/80 transition-colors" aria-label="Trocar pôster">
-                            <IoIosImages size={20} />
-                        </button>
-                        )}
+                  <div className="w-full md:w-1/3 flex-shrink-0 relative">
+                    <img src={imageUrl} alt={movie.title} className="w-full rounded-lg shadow-lg" />
+                    {posters.length > 1 && (
+                      <button type="button" onClick={onChangePoster} className="absolute top-2 right-2 bg-black/60 text-white p-2 rounded-full hover:bg-black/80 transition-colors" aria-label="Trocar pôster">
+                        <IoIosImages size={20} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="w-full space-y-4">
+                    <h2 className="text-3xl font-bold">{movie.title} <span className="font-light text-gray-400">{movie.release_date.substring(0, 4)}</span></h2>
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="watchedOn">Assistido em</label>
+                        <input type="date" id="watchedOn" value={watchedOn} onChange={e => setWatchedOn(e.target.value)} className="bg-gray-700 p-1 rounded-md text-xs" />
+                      </div>
+                      {isRewatch && <span className="bg-cyan-800/50 text-cyan-300 text-xs font-bold px-2 py-1 rounded">REWATCH</span>}
                     </div>
-                    <div className="w-full space-y-4">
-                        <h2 className="text-3xl font-bold">{movie.title} <span className="font-light text-gray-400">{movie.release_date.substring(0, 4)}</span></h2>
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                              <label htmlFor="watchedOn">Assistido em</label>
-                              <input type="date" id="watchedOn" value={watchedOn} onChange={e => setWatchedOn(e.target.value)} className="bg-gray-700 p-1 rounded-md text-xs"/>
-                          </div>
-                          {isRewatch && <span className="bg-cyan-800/50 text-cyan-300 text-xs font-bold px-2 py-1 rounded">REWATCH</span>}
-                        </div>
-                        <textarea
-                          value={reviewText}
-                          onChange={(e) => setReviewText(e.target.value)}
-                          rows={8}
-                          placeholder="Adicione uma crítica ou notas para esta visualização..."
-                          className="w-full p-3 bg-gray-700/50 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        />
-                    </div>
+                    <textarea
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                      rows={8}
+                      placeholder="Adicione uma crítica ou notas para esta visualização..."
+                      className="w-full p-3 bg-gray-700/50 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center p-4 bg-gray-900/50 rounded-b-lg">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setIsLiked(!isLiked)}>
-                          {isLiked ? <FaHeart className="text-red-500" size={24}/> : <FaRegHeart className="text-gray-400 hover:text-white" size={24}/>}
-                          <span className="font-semibold text-sm">Like</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          {[...Array(5)].map((_, index) => {
-                              const starValue = index + 1;
-                              return <FaStar key={starValue} size={24} className="cursor-pointer" color={starValue <= (hoverRating || rating) ? '#ffc107' : '#6b7280'} onClick={() => setRating(starValue)} onMouseEnter={() => setHoverRating(starValue)} onMouseLeave={() => setHoverRating(0)} />;
-                          })}
-                        </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setIsLiked(!isLiked)}>
+                      {isLiked ? <FaHeart className="text-red-500" size={24} /> : <FaRegHeart className="text-gray-400 hover:text-white" size={24} />}
+                      <span className="font-semibold text-sm">Like</span>
                     </div>
-                    <div className="flex items-center">
-                      {error && <p className="text-sm text-red-400 text-center mr-4">{error}</p>}
-                      <button type="submit" disabled={loading} className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-600">
-                        {loading ? 'SALVANDO...' : 'SALVAR'}
-                      </button>
+
+                    {/* ✅ Lógica de input de nota precisa */}
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex cursor-pointer"
+                        onMouseMove={handleMouseMove}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => setRating(hoverRating)}
+                      >
+                        <StarRatingDisplay rating={hoverRating || rating} size={28} />
+                      </div>
+                      <span className="text-sm font-bold text-gray-400 w-8">
+                        {(hoverRating || rating).toFixed(1)}
+                      </span>
                     </div>
+                  </div>
+                  <div className="flex items-center">
+                    {error && <p className="text-sm text-red-400 text-center mr-4">{error}</p>}
+                    <button type="submit" disabled={loading} className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-600">
+                      {loading ? 'SALVANDO...' : 'SALVAR'}
+                    </button>
+                  </div>
                 </div>
-                </>
+              </>
             )}
           </form>
         </Dialog.Panel>

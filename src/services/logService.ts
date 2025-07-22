@@ -6,13 +6,14 @@ import { Movie } from '../models/movie';
 
 // Esta interface combina os nossos dados de log com os detalhes completos do filme.
 export interface EnrichedLog {
-  id: number;
+   id: number;
   watched_date: string;
   rating: number;
   review_text: string | null;
   is_liked: boolean;
   is_rewatch: boolean;
-  movie: Movie; // O objeto completo do filme está aninhado aqui.
+  poster_path: string | null; // ✅ Propriedade adicionada aqui
+  movie: Movie; 
 }
 
 // Tipos para as nossas opções de filtro e ordenação
@@ -150,4 +151,35 @@ export const getAllLogsForMovie = async (userId: string, movieId: number): Promi
   }));
 
   return enrichedLogs;
+};
+
+
+/**
+ * Busca um único log pelo seu ID e o enriquece com detalhes do filme.
+ * @param logId O ID do log a ser buscado.
+ * @returns Um único EnrichedLog ou null se não for encontrado.
+ */
+export const getEnrichedLogById = async (logId: number): Promise<EnrichedLog | null> => {
+  const { data: log, error: logError } = await supabase
+    .from('logs')
+    .select('*')
+    .eq('id', logId)
+    .single();
+
+  if (logError || !log) {
+    console.error('Erro ao buscar o log:', logError);
+    return null;
+  }
+
+  const movieDetails = await getMovieDetails(log.movie_id);
+  if (!movieDetails) {
+    return null;
+  }
+
+  const enrichedLog: EnrichedLog = {
+    ...log,
+    movie: movieDetails,
+  };
+
+  return enrichedLog;
 };

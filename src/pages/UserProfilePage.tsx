@@ -13,6 +13,7 @@ import FavoriteMovieSlot from '../components/FavoriteMovieSlot';
 import WatchlistPreview from '../components/WatchlistPreview';
 import DiaryGridItem from '../components/DiaryGridItem';
 import StatsWidget from '../components/StatsWidget';
+import PosterSelectionModal from '../components/PosterSelectionModal';
 
 // Serviços
 import {
@@ -25,7 +26,7 @@ import {
     checkFriendship,
     getFriendshipCounts
 } from '../services/profileService';
-import { getMovieDetails, getMovieImages } from '../services/tmdbService';
+import { getMovieDetails, getBestMovieBackdrops, getMovieImages } from '../services/tmdbService';
 import { getWatchlist } from '../services/watchlistService';
 import { getUniqueFilmCount, getReviewCount, getRatingsDistribution, RatingsDistribution } from '../services/statsService';
 import { getRecentEnrichedLogs, EnrichedLog } from '../services/logService';
@@ -43,6 +44,10 @@ interface Profile {
     fav_movie_id_2: number | null;
     fav_movie_id_3: number | null;
     fav_movie_id_4: number | null;
+    fav_movie_poster_1: string | null;
+    fav_movie_poster_2: string | null;
+    fav_movie_poster_3: string | null;
+    fav_movie_poster_4: string | null;
 }
 
 export default function UserProfilePage() {
@@ -70,10 +75,12 @@ export default function UserProfilePage() {
     const [ratingsDistribution, setRatingsDistribution] = useState<RatingsDistribution>({});
     const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-    // ✅ CORREÇÃO 1: O useCallback agora depende de valores primitivos e estáveis
+    // Novos estados para o modal de pôster
+    const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
+    const [availablePosters, setAvailablePosters] = useState<any[]>([]);
+
     const fetchProfileData = useCallback(async (currentUserId: string | undefined, currentUsername: string | undefined) => {
         const targetUsername = username || currentUsername;
-
         if (!targetUsername) {
             if (!currentUserId && !isAuthLoading) navigate('/login');
             return;
@@ -128,9 +135,8 @@ export default function UserProfilePage() {
         } finally {
             setIsProfileLoading(false);
         }
-    }, [username, navigate, isAuthLoading]); // Removido currentUser e outras dependências instáveis
+    }, [username, navigate, isAuthLoading]);
 
-    // ✅ CORREÇÃO 2: O useEffect agora chama a função com os dados estáveis
     useEffect(() => {
         if (!isAuthLoading) {
             fetchProfileData(currentUser?.id, currentUser?.user_metadata?.username);
@@ -154,6 +160,54 @@ export default function UserProfilePage() {
         }
     };
     
+    const handleMovieSelectForBanner = async (movie: Movie) => {
+        setSelectedMovieForBackdrop(movie);
+        setIsBannerSearchModalOpen(false);
+
+        const bestBackdrops = await getBestMovieBackdrops(movie.id);
+        
+        if (bestBackdrops.length > 0) {
+            setAvailableBackdrops(bestBackdrops);
+        } else if (movie.backdrop_path) {
+            setAvailableBackdrops([{ file_path: movie.backdrop_path }]);
+        } else {
+            setAvailableBackdrops([]);
+        }
+
+        setIsBackdropSelectModalOpen(true);
+    };
+
+    const handleUpdateFavoriteMovie = async (movie: Movie) => {
+        if (!currentUser || editingSlot === null) return;
+        await updateFavoriteMovieSlot(currentUser.id, editingSlot, movie.id, movie.poster_path);
+        setIsFavoriteSearchModalOpen(false);
+        fetchProfileData(currentUser.id, currentUser.user_metadata?.username);
+    };
+
+    const handleOpenPosterSelection = async (slotIndex: number) => {
+        if (!isOwnProfile) return;
+        const movie = favoriteMovies[slotIndex];
+        if (!movie) return;
+
+        setEditingSlot(slotIndex);
+        const images = await getMovieImages(movie.id);
+        const allPosters = [{ file_path: movie.poster_path }, ...(images.posters || [])];
+        const uniquePosters = Array.from(new Set(allPosters.map(p => p.file_path)))
+                                   .map(file_path => allPosters.find(p => p.file_path === file_path));
+        setAvailablePosters(uniquePosters.filter(p => p && p.file_path) as any[]);
+        setIsPosterModalOpen(true);
+    };
+
+    const handlePosterSelected = async (posterPath: string) => {
+        if (!currentUser || editingSlot === null) return;
+        const movie = favoriteMovies[editingSlot];
+        if (!movie) return;
+
+        await updateFavoriteMovieSlot(currentUser.id, editingSlot, movie.id, posterPath);
+        setIsPosterModalOpen(false);
+        fetchProfileData(currentUser.id, currentUser.user_metadata?.username);
+    };
+
     if (isProfileLoading || isAuthLoading) return <div className="text-center py-48">A carregar perfil...</div>;
     if (!profileUser) return <div className="text-center py-48">Utilizador não encontrado.</div>;
 
@@ -188,7 +242,6 @@ export default function UserProfilePage() {
                                         {profileUser.username}
                                     </h1>
                                 </div>
-
                                 <div className="flex justify-center gap-4 text-sm mt-2">
                                     <Link
                                         to={`/profile/${profileUser.username}/followers`}
@@ -240,7 +293,9 @@ export default function UserProfilePage() {
                                         <FavoriteMovieSlot
                                             key={index}
                                             movie={movie}
+                                            posterPath={profileUser?.[`fav_movie_poster_${index + 1}` as keyof Profile] as string | null}
                                             onSelectSlot={() => { if (isOwnProfile) { setEditingSlot(index); setIsFavoriteSearchModalOpen(true); } }}
+                                            onEditPoster={() => handleOpenPosterSelection(index)}
                                         />
                                     ))}
                                 </div>
@@ -257,7 +312,6 @@ export default function UserProfilePage() {
                                     <p className="text-sm text-gray-400">Reviews</p>
                                 </div>
                             </div>
-
                             {isProfileLoading ? (
                                 <div className="bg-gray-800/50 p-4 rounded-lg h-32 animate-pulse" />
                             ) : (
@@ -266,7 +320,6 @@ export default function UserProfilePage() {
                                     distribution={ratingsDistribution}
                                 />
                             )}
-
                             <WatchlistPreview movies={watchlistPreview} totalCount={watchlistCount} />
                         </div>
                     </div>
@@ -287,13 +340,7 @@ export default function UserProfilePage() {
                     <MovieSearchModal
                         isOpen={isBannerSearchModalOpen}
                         onClose={() => setIsBannerSearchModalOpen(false)}
-                        onMovieSelect={async (movie) => {
-                            setSelectedMovieForBackdrop(movie);
-                            setIsBannerSearchModalOpen(false);
-                            const imagesData = await getMovieImages(movie.id);
-                            setAvailableBackdrops(imagesData.backdrops || []);
-                            setIsBackdropSelectModalOpen(true);
-                        }}
+                        onMovieSelect={handleMovieSelectForBanner}
                     />
                     <BackdropSelectionModal
                         isOpen={isBackdropSelectModalOpen}
@@ -310,12 +357,14 @@ export default function UserProfilePage() {
                     <MovieSearchModal
                         isOpen={isFavoriteSearchModalOpen}
                         onClose={() => setIsFavoriteSearchModalOpen(false)}
-                        onMovieSelect={async (movie) => {
-                            if (!currentUser || editingSlot === null) return;
-                            await updateFavoriteMovieSlot(currentUser.id, editingSlot, movie.id);
-                            setIsFavoriteSearchModalOpen(false);
-                            fetchProfileData(currentUser.id, currentUser.user_metadata?.username);
-                        }}
+                        onMovieSelect={handleUpdateFavoriteMovie}
+                    />
+                    <PosterSelectionModal
+                        isOpen={isPosterModalOpen}
+                        onClose={() => setIsPosterModalOpen(false)}
+                        movie={editingSlot !== null ? favoriteMovies[editingSlot] : null}
+                        posters={availablePosters}
+                        onPosterSelect={handlePosterSelected}
                     />
                 </>
             )}

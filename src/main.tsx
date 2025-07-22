@@ -18,6 +18,7 @@ import FollowingPage from './pages/FollowingPage'
 import DiaryPage from './pages/DiaryPage'
 import UserListsPage from './pages/UserListsPage'
 import ListPageDetails from './pages/ListPageDetails'
+import LogDetailsPage from './pages/LogDetailsPage'
 
 
 import { AuthProvider } from './contexts/AuthContext'
@@ -36,7 +37,7 @@ const router = createBrowserRouter([
       { path: 'diary', element: <DiaryPage /> },
       { path: 'watchlist', element: <WatchlistPage /> },
       
-      // ✅ ROTA DE MEMBROS ADICIONADA
+      { path: 'log/:logId', element: <LogDetailsPage /> },
       {
         path: 'members',
         element: <MembersPage />,

@@ -46,22 +46,6 @@ export const updateProfileBanner = async (
     if (error) throw error;
 };
 
-export const updateFavoriteMovieSlot = async (userId: string, slotIndex: number, movieId: number | null) => {
-  const updatePayload = {
-    [`fav_movie_id_${slotIndex + 1}`]: movieId,
-  };
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(updatePayload)
-    .eq('id', userId);
-
-  if (error) {
-    console.error(`Erro ao atualizar o slot ${slotIndex + 1}:`, error);
-    throw error;
-  }
-};
-
 
 // --- Funções Sociais ---
 
@@ -250,4 +234,28 @@ export const getFollowing = async (userId: string): Promise<MemberProfile[]> => 
   }
 
   return profilesData || [];
+};
+
+// Dentro de src/services/profileService.ts
+
+export const updateFavoriteMovieSlot = async (
+  userId: string,
+  slotIndex: number, // Continua sendo 0-3
+  movieId: number | null,
+  posterPath: string | null // Novo parâmetro
+) => {
+  const updatePayload = {
+    [`fav_movie_id_${slotIndex + 1}`]: movieId,
+    [`fav_movie_poster_${slotIndex + 1}`]: posterPath, // Salva o pôster na nova coluna
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update(updatePayload)
+    .eq('id', userId);
+
+  if (error) {
+    console.error(`Erro ao atualizar o slot de favorito ${slotIndex + 1}:`, error);
+    throw error;
+  }
 };

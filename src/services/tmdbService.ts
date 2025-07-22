@@ -142,3 +142,35 @@ export const searchMovies = async (query: string): Promise<ApiResponse<Movie>> =
   );
   return await response.json();
 };
+
+/**
+ * Busca as imagens de um filme, ordena os backdrops por relevância (votos e nota)
+ * e retorna os 10 melhores.
+ * @param movieId O ID do filme.
+ * @returns Uma promessa que resolve para um array dos 10 melhores backdrops.
+ */
+export const getBestMovieBackdrops = async (movieId: number): Promise<any[]> => {
+  try {
+    const imagesData = await getMovieImages(movieId);
+    const backdrops = imagesData.backdrops || [];
+
+    // Algoritmo de relevância para ordenar os banners
+    const sortedBackdrops = backdrops.sort((a: any, b: any) => {
+      // Critério 1: Priorizar imagens com mais votos
+      if (a.vote_count > b.vote_count) return -1;
+      if (a.vote_count < b.vote_count) return 1;
+
+      // Critério 2: Priorizar imagens com maior média de votos
+      if (a.vote_average > b.vote_average) return -1;
+      if (a.vote_average < b.vote_average) return 1;
+      
+      return 0; // Manter a ordem se tudo for igual
+    });
+
+    return sortedBackdrops.slice(0, 10); // Retorna apenas os 10 melhores
+  } catch (error) {
+    console.error("Erro ao buscar e ordenar banners:", error);
+    // Em caso de erro, retorna um array vazio. O componente lidará com o fallback.
+    return [];
+  }
+};

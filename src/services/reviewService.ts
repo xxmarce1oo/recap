@@ -11,6 +11,7 @@ export interface LogData {
   isLiked: boolean;
   watchedDate: string; // Formato 'YYYY-MM-DD'
   isRewatch: boolean;
+  posterPath: string | null; // ✅ Adiciona o caminho do pôster
 }
 
 /**
@@ -26,6 +27,7 @@ export const saveLog = async (data: LogData) => {
     is_liked: data.isLiked,
     watched_date: data.watchedDate,
     is_rewatch: data.isRewatch,
+        poster_path: data.posterPath, // ✅ Salva o pôster no banco
   });
 
   if (error) {
@@ -52,4 +54,16 @@ export const getLogCountForMovie = async (userId: string, movieId: number): Prom
   }
 
   return count ?? 0;
+};
+
+export const deleteLog = async (logId: number) => {
+  const { error } = await supabase
+    .from('logs')
+    .delete()
+    .eq('id', logId);
+
+  if (error) {
+    console.error('Erro ao deletar o log:', error);
+    throw new Error('Não foi possível deletar a sua review.');
+  }
 };

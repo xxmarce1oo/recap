@@ -37,19 +37,22 @@ export const removeMovieFromWatchlist = async (userId: string, movieId: number):
  * Retorna true se estiver, false caso contrário.
  */
 export const isMovieInWatchlist = async (userId: string, movieId: number): Promise<boolean> => {
+  // ✅ CORREÇÃO DEFINITIVA: Removemos o .single()
   const { data, error } = await supabase
     .from('watchlist')
-    .select('movie_id')
+    .select('movie_id') // Podemos selecionar apenas uma coluna, não precisa ser '*'
     .eq('user_id', userId)
     .eq('movie_id', movieId)
-    .single();
+    .limit(1); // Pedimos no máximo 1 resultado, o que é mais eficiente
 
-  if (error && error.code !== 'PGRST116') { // Ignora o erro 'PGRST116' (nenhuma linha encontrada)
+  if (error) {
     console.error('Erro ao verificar a watchlist:', error);
-    throw new Error('Erro ao verificar a watchlist.');
+    // Mesmo com erro, retornamos false para não quebrar a UI
+    return false;
   }
 
-  return !!data;
+  // A verificação correta é ver se o array retornado tem algum item
+  return data !== null && data.length > 0;
 };
 
 /**

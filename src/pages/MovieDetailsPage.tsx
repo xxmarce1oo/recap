@@ -2,19 +2,21 @@
 
 import { useParams } from 'react-router-dom';
 import { getMovieDetails, getMovieProviders, getMovieVideos, getMovieCredits, getMovieReleaseDates, getMovieImages } from '../services/tmdbService';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Movie } from '../models/movie';
 import { IoIosImages } from 'react-icons/io';
-import MovieActions from '../components/MovieActions'; 
+import InlineReviewForm from '../components/InlineReviewForm'; // ✅ 1. Importa o novo formulário
 import ReviewModal from '../components/ReviewModal';
 import { useAuth } from '../contexts/AuthContext';
 import { addMovieToWatchlist, removeMovieFromWatchlist, isMovieInWatchlist } from '../services/watchlistService';
+import { getAllLogsForMovie, EnrichedLog } from '../services/logService';
+import UserReviewCard from '../components/UserReviewCard';
 
 const ProviderItem = ({ provider, id }: { provider: any, id: string | undefined }) => {
     const providerDetails = provider.provider || provider;
     return (
         <div className="flex items-center gap-3">
-          {providerDetails.logo_path && ( <img src={`https://image.tmdb.org/t/p/original${providerDetails.logo_path}`} alt={providerDetails.provider_name || providerDetails.name} className="w-8 h-8 rounded-md object-cover" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} /> )}
+          {providerDetails.logo_path && ( <img src={`https://image.tmdb.org/t/p/original${providerDetails.logo_path}`} alt={providerDetails.provider_name || providerDetails.name} className="w-8 h-8 rounded-md object-cover" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} /> )}
           <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{providerDetails.provider_name || providerDetails.name}</p></div>
           <a href={`https://www.themoviedb.org/movie/${id}/watch?locale=BR`} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-400 hover:underline">Ver</a>
         </div>
@@ -39,60 +41,72 @@ export default function MovieDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
-  // Estados da Watchlist
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [isWatchlistLoading, setIsWatchlistLoading] = useState(true);
+  const [userLogs, setUserLogs] = useState<EnrichedLog[]>([]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0); 
-    const fetchMovieData = async () => {
-      try {
-        setLoading(true);
-        const [
-          movieData, providersData, videosData,
-          creditsData, releaseDatesData, imagesData
-        ] = await Promise.all([
-          getMovieDetails(movieId), getMovieProviders(movieId),
-          getMovieVideos(movieId), getMovieCredits(movieId),
-          getMovieReleaseDates(movieId), getMovieImages(movieId),
-        ]);
-        
-        setMovie(movieData);
-        setCredits(creditsData);
-        setReleaseDates(releaseDatesData.results);
-        setProviders(providersData);
-        setVideos(videosData.filter((video: any) => video.type === 'Trailer'));
-        setBackdrops(imagesData.backdrops || []);
-        setPosters(imagesData.posters || []);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to load movie details');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMovieData();
+  const fetchAllMovieData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [
+        movieData, providersData, videosData,
+        creditsData, releaseDatesData, imagesData
+      ] = await Promise.all([
+        getMovieDetails(movieId), getMovieProviders(movieId),
+        getMovieVideos(movieId), getMovieCredits(movieId),
+        getMovieReleaseDates(movieId), getMovieImages(movieId),
+      ]);
+      
+      setMovie(movieData);
+      setCredits(creditsData);
+      // ✅ CORREÇÃO AQUI: providersData já é o array processado
+      setProviders(providersData);
+      setVideos(videosData.filter((video: any) => video.type === 'Trailer'));
+      setBackdrops(imagesData.backdrops || []);
+      setPosters(imagesData.posters || []);
+      setReleaseDates(releaseDatesData);
+
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load movie details');
+    } finally {
+      setLoading(false);
+    }
   }, [movieId]);
 
-  // Efeito para verificar o status da watchlist
-  useEffect(() => {
+  const fetchUserData = useCallback(async () => {
     if (!user) {
       setIsWatchlistLoading(false);
+      setUserLogs([]);
       return;
     }
     
     setIsWatchlistLoading(true);
-    isMovieInWatchlist(user.id, movieId)
-      .then(status => setIsInWatchlist(status))
-      .catch(console.error)
-      .finally(() => setIsWatchlistLoading(false));
+    try {
+      const [watchlistStatus, logs] = await Promise.all([
+        isMovieInWatchlist(user.id, movieId),
+        getAllLogsForMovie(user.id, movieId)
+      ]);
+      setIsInWatchlist(watchlistStatus);
+      setUserLogs(logs);
+    } catch (error) {
+      console.error("Erro ao buscar dados do usuário:", error);
+    } finally {
+      setIsWatchlistLoading(false);
+    }
   }, [user, movieId]);
 
-  // Função para adicionar/remover da watchlist
+  useEffect(() => {
+    window.scrollTo(0, 0); 
+    fetchAllMovieData();
+  }, [fetchAllMovieData]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
   const handleToggleWatchlist = async () => {
     if (!user || !movie || isWatchlistLoading) return;
-
     setIsWatchlistLoading(true);
     try {
       if (isInWatchlist) {
@@ -104,22 +118,22 @@ export default function MovieDetailsPage() {
       }
     } catch (error) {
       console.error(error);
-      alert('Não foi possível atualizar a watchlist. Tente novamente.');
     } finally {
       setIsWatchlistLoading(false);
     }
   };
 
+  const onReviewSuccess = () => {
+    setIsReviewModalOpen(false);
+    fetchUserData();
+  };
+
   const changeBackdrop = () => {
-    if (backdrops.length > 1) {
-      setCurrentBackdropIndex((prevIndex) => (prevIndex + 1) % backdrops.length);
-    }
+    if (backdrops.length > 1) setCurrentBackdropIndex((prev) => (prev + 1) % backdrops.length);
   };
 
   const changePoster = () => {
-    if (posters.length > 1) {
-      setCurrentPosterIndex((prevIndex) => (prevIndex + 1) % posters.length);
-    }
+    if (posters.length > 1) setCurrentPosterIndex((prev) => (prev + 1) % posters.length);
   };
   
   const toggleSection = (section: string) => {
@@ -169,11 +183,9 @@ export default function MovieDetailsPage() {
       
       <div className="container mx-auto px-4 md:px-12 py-8 -mt-48 relative z-10">
         <div className="flex flex-col md:flex-row gap-8">
-
-          {/* COLUNA DA ESQUERDA */}
           <div className="w-full md:w-1/4 lg:w-1/5">
              <img 
-              src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} 
+              src={`https://image.tmdb.org/t/p/w500${currentPosterPath}`} 
               alt={movie.title}
               className="w-full rounded-lg shadow-lg mb-6"
             />
@@ -222,7 +234,6 @@ export default function MovieDetailsPage() {
             )}
           </div>
 
-          {/* COLUNA DA DIREITA */}
           <div className="w-full md:w-3/4 lg:w-4/5 md:pt-24">
             <h1 className="text-4xl lg:text-5xl font-bold text-white" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.5)' }}>
               {movie.title} <span className="text-3xl text-gray-400 font-light">({releaseYear})</span>
@@ -233,14 +244,9 @@ export default function MovieDetailsPage() {
               <span>{movie.runtime} minutos</span>
             </div>
             
+            {/* ✅ 2. Substituímos o MovieActions pelo InlineReviewForm */}
             <div className="my-6">
-              <MovieActions 
-                onReviewClick={() => setIsReviewModalOpen(true)}
-                isAuth={!!user}
-                isInWatchlist={isInWatchlist}
-                onWatchlistClick={handleToggleWatchlist}
-                isWatchlistLoading={isWatchlistLoading}
-              />
+                <InlineReviewForm movieId={movie.id} onReviewSaved={fetchUserData} />
             </div>
 
             <p className="text-gray-300 mb-6 leading-relaxed">{movie.overview}</p>
@@ -268,6 +274,16 @@ export default function MovieDetailsPage() {
                 {expandedSection === 'release' && ( <div className="mt-4 bg-gray-800 p-4 rounded-lg"><h3 className="font-semibold mb-3 text-lg">Datas por País</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{releaseDates?.filter((c: any) => c.release_dates?.length > 0).map((country: any) => ( <div key={country.iso_3166_1} className="mb-2"><p className="font-medium text-white">{country.iso_3166_1}</p><p className="text-sm text-gray-400">{new Date(country.release_dates[0].release_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p></div> ))}</div></div> )}
             </div>
 
+            {userLogs.length > 0 && (
+              <div className="mt-8 border-t border-gray-800 pt-6">
+                <h3 className="text-xl font-bold text-white mb-4">Meu Histórico neste Filme</h3>
+                <div className="space-y-4">
+                  {userLogs.map(log => (
+                    <UserReviewCard key={log.id} log={log} />
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-8 border-t border-gray-800 pt-6">
                 <h3 className="text-xl font-bold text-white mb-4">Avaliações da Comunidade</h3>
@@ -283,7 +299,6 @@ export default function MovieDetailsPage() {
                     ))}
                 </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -291,6 +306,7 @@ export default function MovieDetailsPage() {
       <ReviewModal 
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
+        onSaveSuccess={onReviewSuccess}
         movie={movie}
         posters={posters}
         currentPosterPath={currentPosterPath}

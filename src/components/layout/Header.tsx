@@ -1,13 +1,18 @@
 // arquivo: src/components/layout/Header.tsx
 
-import React, { useState, FormEvent } from 'react'; // ✅ Importe o React
+import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaTimes } from 'react-icons/fa';
+import { FaPlus, FaTimes } from 'react-icons/fa';
 import AuthModal from '../AuthModal';
+import MovieSearchModal from '../MovieSearchModal';
+import ReviewModal from '../ReviewModal';
+import PosterSelectionModal from '../PosterSelectionModal'; // Importa o novo modal
 import { useAuth } from '../../contexts/AuthContext';
 import { signIn } from '../../services/authService';
+import { Movie } from '../../models/movie';
+import { getMovieImages } from '../../services/tmdbService';
 
-// ✅ Componente interno para o perfil do usuário, que só renderiza quando necessário
+// Componente interno para o perfil do usuário, que só renderiza quando necessário
 const UserProfileLink = React.memo(() => {
   const { user } = useAuth();
   const avatarUrl = user?.user_metadata?.avatar_url;
@@ -27,26 +32,25 @@ const UserProfileLink = React.memo(() => {
 
 export default function Header() {
   const navigate = useNavigate();
+  
+  // Estados para os modais de autenticação
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
-  
-  // ✅ Pegamos apenas as propriedades que causam mudanças visuais
-  const { user, signOut, isLoading } = useAuth();
-
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const handleSignInClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-    setShowLoginForm(true);
-  };
+  // Estados para controlar o fluxo de adicionar review
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const handleCloseLoginForm = () => {
-    setShowLoginForm(false);
-    setLoginError(null);
-  };
+  // Estados para gerenciar os pôsteres
+  const [posters, setPosters] = useState<any[]>([]);
+  const [currentPosterPath, setCurrentPosterPath] = useState<string | null>(null);
+  const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
+
+  const { user, signOut, isLoading } = useAuth();
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,6 +63,44 @@ export default function Header() {
     }
   };
 
+  // Função de seleção de filme ATUALIZADA para buscar imagens
+  const handleMovieSelectedForReview = async (movie: Movie) => {
+    setSelectedMovie(movie);
+    setIsSearchModalOpen(false);
+    setCurrentPosterPath(movie.poster_path); // Define o pôster inicial
+
+    try {
+      const imagesData = await getMovieImages(movie.id);
+      const allPosters = [{ file_path: movie.poster_path }, ...(imagesData.posters || [])];
+      const uniquePosters = Array.from(new Set(allPosters.map(p => p.file_path)))
+                                 .map(file_path => allPosters.find(p => p.file_path === file_path));
+      setPosters(uniquePosters.filter(p => p && p.file_path) as any[]);
+    } catch (error) {
+      console.error("Erro ao buscar pôsteres:", error);
+      setPosters([{ file_path: movie.poster_path }]); // Fallback para o pôster principal
+    }
+    
+    setIsReviewModalOpen(true);
+  };
+
+  // Esta função agora abre o modal de seleção
+  const openPosterSelection = () => {
+    if (posters.length > 1) {
+      setIsPosterModalOpen(true);
+    }
+  };
+
+  // Esta função é chamada pelo PosterSelectionModal quando um pôster é escolhido
+  const handlePosterSelected = (path: string) => {
+    setCurrentPosterPath(path);
+  };
+
+  const handleCloseReviewModal = () => {
+    setIsReviewModalOpen(false);
+    setSelectedMovie(null);
+    setPosters([]);
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 z-50 py-3 transition-all">
@@ -69,13 +111,11 @@ export default function Header() {
                 <div className="w-6 h-8 bg-pink-500 rounded-sm transform rotate-12 shadow-sm"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-6 bg-pink-300 rounded-sm transform rotate-12"></div>
               </div>
-
               <div className="flex flex-col items-start">
                 <div className="text-gray-200 text-xl font-bold leading-tight">The 1st rule</div>
                 <div className="text-xs text-gray-400 mt-0.5">clube do cinema</div>
               </div>
             </div>
-
             <nav className="hidden md:flex items-center space-x-5 text-sm">
               <Link to="/films" className="font-semibold text-gray-300 hover:text-white transition-colors">FILMES</Link>
               <Link to="/lists" className="font-semibold text-gray-300 hover:text-white transition-colors">LISTAS</Link>
@@ -88,7 +128,14 @@ export default function Header() {
               <div className="h-6 w-24 bg-gray-700 rounded-md animate-pulse"></div>
             ) : user ? (
               <div className="flex items-center gap-4">
-                {/* ✅ Usamos o componente memorizado aqui */}
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="p-2 bg-gray-700 rounded-full text-white hover:bg-cyan-600 transition-colors"
+                  title="Adicionar um filme ao seu diário"
+                >
+                  <FaPlus size={12} />
+                </button>
+                <div className="h-6 w-px bg-gray-700"></div>
                 <UserProfileLink />
                 <button onClick={signOut} className="font-semibold text-gray-400 hover:text-white">SAIR</button>
               </div>
@@ -96,13 +143,13 @@ export default function Header() {
               <div className="relative">
                 {!showLoginForm && (
                   <div className="flex items-center space-x-5">
-                    <a href="#" onClick={handleSignInClick} className="font-semibold text-gray-300 hover:text-white">ENTRAR</a>
+                    <a href="#" onClick={(e) => { e.preventDefault(); setLoginError(null); setShowLoginForm(true); }} className="font-semibold text-gray-300 hover:text-white">ENTRAR</a>
                     <a href="#" onClick={(e) => { e.preventDefault(); setIsAuthModalOpen(true); }} className="px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-gray-600 font-bold">CRIAR CONTA</a>
                   </div>
                 )}
                 {showLoginForm && (
                    <div className="flex items-center justify-end w-full gap-2">
-                    <button onClick={handleCloseLoginForm} className="p-1.5 text-gray-400 hover:text-white" aria-label="Fechar"><FaTimes size={16} /></button>
+                    <button onClick={() => setShowLoginForm(false)} className="p-1.5 text-gray-400 hover:text-white" aria-label="Fechar"><FaTimes size={16} /></button>
                     <div className="relative">
                       <form onSubmit={handleLogin} className="hidden md:flex items-center space-x-2">
                         <input
@@ -130,7 +177,6 @@ export default function Header() {
                     </div>
                   </div>
                 )}
-
               </div>
             )}
           </div>
@@ -138,6 +184,34 @@ export default function Header() {
       </header>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      <MovieSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onMovieSelect={handleMovieSelectedForReview}
+      />
+      
+      {selectedMovie && (
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={handleCloseReviewModal}
+          onSaveSuccess={handleCloseReviewModal}
+          movie={selectedMovie}
+          posters={posters}
+          currentPosterPath={currentPosterPath || ''}
+          onChangePoster={openPosterSelection}
+        />
+      )}
+
+      {selectedMovie && (
+        <PosterSelectionModal
+          isOpen={isPosterModalOpen}
+          onClose={() => setIsPosterModalOpen(false)}
+          movie={selectedMovie}
+          posters={posters}
+          onPosterSelect={handlePosterSelected}
+        />
+      )}
     </>
   );
 }
