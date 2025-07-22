@@ -48,13 +48,12 @@ interface Profile {
 export default function UserProfilePage() {
     const { username } = useParams<{ username: string }>();
     const navigate = useNavigate();
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, isLoading: isAuthLoading } = useAuth();
 
     const [profileUser, setProfileUser] = useState<Profile | null>(null);
     const [isOwnProfile, setIsOwnProfile] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [friendshipCounts, setFriendshipCounts] = useState({ followers: 0, following: 0 });
-
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
     const [isBannerSearchModalOpen, setIsBannerSearchModalOpen] = useState(false);
     const [isBackdropSelectModalOpen, setIsBackdropSelectModalOpen] = useState(false);
@@ -69,48 +68,40 @@ export default function UserProfilePage() {
     const [reviewCount, setReviewCount] = useState(0);
     const [recentLogs, setRecentLogs] = useState<EnrichedLog[]>([]);
     const [ratingsDistribution, setRatingsDistribution] = useState<RatingsDistribution>({});
-    const [isLoading, setIsLoading] = useState(true);
+    const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-    const fetchProfileData = useCallback(async () => {
-        const targetUsername = username || currentUser?.user_metadata?.username;
+    // ✅ CORREÇÃO 1: O useCallback agora depende de valores primitivos e estáveis
+    const fetchProfileData = useCallback(async (currentUserId: string | undefined, currentUsername: string | undefined) => {
+        const targetUsername = username || currentUsername;
 
         if (!targetUsername) {
-            if (!currentUser) navigate('/login');
+            if (!currentUserId && !isAuthLoading) navigate('/login');
+            return;
+        }
+        if (!username && currentUsername) {
+            navigate(`/profile/${currentUsername}`, { replace: true });
             return;
         }
 
-        if (username && username.toLowerCase() !== targetUsername.toLowerCase()) {
-            navigate(`/profile/${targetUsername}`, { replace: true });
-            return;
-        }
-
-        setIsLoading(true);
+        setIsProfileLoading(true);
         try {
             const fetchedProfile = await getProfileByUsername(targetUsername);
             setProfileUser(fetchedProfile as Profile);
-
-            const viewingOwnProfile = currentUser?.id === fetchedProfile.id;
+            const viewingOwnProfile = currentUserId === fetchedProfile.id;
             setIsOwnProfile(viewingOwnProfile);
 
-            if (!viewingOwnProfile && currentUser) {
-                const friendshipStatus = await checkFriendship(currentUser.id, fetchedProfile.id);
+            if (!viewingOwnProfile && currentUserId) {
+                const friendshipStatus = await checkFriendship(currentUserId, fetchedProfile.id);
                 setIsFollowing(friendshipStatus);
             }
 
             const [
-                watchlistIds,
-                fetchedFilmCount,
-                fetchedReviewCount,
-                fetchedRecentLogs,
-                fetchedRatingsDistribution,
-                counts
+                watchlistIds, fetchedFilmCount, fetchedReviewCount,
+                fetchedRecentLogs, fetchedRatingsDistribution, counts
             ] = await Promise.all([
-                getWatchlist(fetchedProfile.id),
-                getUniqueFilmCount(fetchedProfile.id),
-                getReviewCount(fetchedProfile.id),
-                getRecentEnrichedLogs(fetchedProfile.id, 6),
-                getRatingsDistribution(fetchedProfile.id),
-                getFriendshipCounts(fetchedProfile.id)
+                getWatchlist(fetchedProfile.id), getUniqueFilmCount(fetchedProfile.id),
+                getReviewCount(fetchedProfile.id), getRecentEnrichedLogs(fetchedProfile.id, 6),
+                getRatingsDistribution(fetchedProfile.id), getFriendshipCounts(fetchedProfile.id)
             ]);
 
             setFilmCount(fetchedFilmCount);
@@ -122,30 +113,33 @@ export default function UserProfilePage() {
 
             const favIds = [fetchedProfile.fav_movie_id_1, fetchedProfile.fav_movie_id_2, fetchedProfile.fav_movie_id_3, fetchedProfile.fav_movie_id_4];
             const previewWatchlistIds = watchlistIds.slice(0, 5);
-            const allIds = [...favIds, ...previewWatchlistIds].filter((id: number | null) => id !== null) as number[];
-            const uniqueIds = [...new Set(allIds)];
+            const allIds = [...new Set([...favIds, ...previewWatchlistIds].filter(Boolean) as number[])];
 
-            if (uniqueIds.length > 0) {
-                const movieDetails = await Promise.all(uniqueIds.map(id => getMovieDetails(id)));
-                const movieMap = new Map(movieDetails.map(movie => [movie.id, movie]));
-                setFavoriteMovies(favIds.map(id => (id ? movieMap.get(id) : null) || null));
+            if (allIds.length > 0) {
+                const movieDetails = await Promise.all(allIds.map(id => getMovieDetails(id).catch(() => null)));
+                const movieMap = new Map(movieDetails.filter(Boolean).map(movie => [movie!.id, movie]));
+                setFavoriteMovies(favIds.map(id => id ? movieMap.get(id) ?? null : null));
                 setWatchlistPreview(previewWatchlistIds.map(id => movieMap.get(id)!).filter(Boolean));
             }
 
         } catch (error) {
             console.error(error);
+            setProfileUser(null);
         } finally {
-            setIsLoading(false);
+            setIsProfileLoading(false);
         }
-    }, [username, currentUser, navigate]);
+    }, [username, navigate, isAuthLoading]); // Removido currentUser e outras dependências instáveis
 
+    // ✅ CORREÇÃO 2: O useEffect agora chama a função com os dados estáveis
     useEffect(() => {
-        fetchProfileData();
-    }, [fetchProfileData]);
+        if (!isAuthLoading) {
+            fetchProfileData(currentUser?.id, currentUser?.user_metadata?.username);
+        }
+    }, [username, currentUser?.id, currentUser?.user_metadata?.username, isAuthLoading, fetchProfileData]);
+
 
     const handleFollowToggle = async () => {
         if (!currentUser || !profileUser || isOwnProfile) return;
-
         try {
             if (isFollowing) {
                 await unfollowUser(currentUser.id, profileUser.id);
@@ -159,8 +153,8 @@ export default function UserProfilePage() {
             console.error("Erro ao seguir/deixar de seguir:", error);
         }
     };
-
-    if (isLoading) return <div className="text-center py-48">A carregar perfil...</div>;
+    
+    if (isProfileLoading || isAuthLoading) return <div className="text-center py-48">A carregar perfil...</div>;
     if (!profileUser) return <div className="text-center py-48">Utilizador não encontrado.</div>;
 
     return (
@@ -264,7 +258,7 @@ export default function UserProfilePage() {
                                 </div>
                             </div>
 
-                            {isLoading ? (
+                            {isProfileLoading ? (
                                 <div className="bg-gray-800/50 p-4 rounded-lg h-32 animate-pulse" />
                             ) : (
                                 <StatsWidget
@@ -287,24 +281,7 @@ export default function UserProfilePage() {
                         onAvatarSelect={async (url) => {
                             if (!currentUser) return;
                             await updateAvatarUrl(currentUser.id, url);
-                            fetchProfileData();
-                        }}
-                    />
-                    <MovieSearchModal
-                        isOpen={isBannerSearchModalOpen}
-                        onClose={() => setIsBannerSearchModalOpen(false)}
-                        onMovieSelect={(movie) => { setSelectedMovieForBackdrop(movie); setIsBannerSearchModalOpen(false); setIsBackdropSelectModalOpen(true); }}
-                    />
-                    <BackdropSelectionModal
-                        isOpen={isBackdropSelectModalOpen}
-                        onClose={() => setIsBackdropSelectModalOpen(false)}
-                        movie={selectedMovieForBackdrop}
-                        backdrops={availableBackdrops}
-                        onBackdropSelect={async (path, pos) => {
-                            if (!currentUser || !selectedMovieForBackdrop) return;
-                            await updateProfileBanner(currentUser.id, selectedMovieForBackdrop.id, path, pos);
-                            setIsBackdropSelectModalOpen(false);
-                            fetchProfileData();
+                            fetchProfileData(currentUser.id, currentUser.user_metadata?.username);
                         }}
                     />
                     <MovieSearchModal
@@ -327,7 +304,7 @@ export default function UserProfilePage() {
                             if (!currentUser || !selectedMovieForBackdrop) return;
                             await updateProfileBanner(currentUser.id, selectedMovieForBackdrop.id, path, pos);
                             setIsBackdropSelectModalOpen(false);
-                            fetchProfileData();
+                            fetchProfileData(currentUser.id, currentUser.user_metadata?.username);
                         }}
                     />
                     <MovieSearchModal
@@ -337,7 +314,7 @@ export default function UserProfilePage() {
                             if (!currentUser || editingSlot === null) return;
                             await updateFavoriteMovieSlot(currentUser.id, editingSlot, movie.id);
                             setIsFavoriteSearchModalOpen(false);
-                            fetchProfileData();
+                            fetchProfileData(currentUser.id, currentUser.user_metadata?.username);
                         }}
                     />
                 </>

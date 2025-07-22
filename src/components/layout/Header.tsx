@@ -1,23 +1,42 @@
 // arquivo: src/components/layout/Header.tsx
 
-import { useState, FormEvent } from 'react';
+import React, { useState, FormEvent } from 'react'; // ✅ Importe o React
 import { useNavigate, Link } from 'react-router-dom';
 import { FaTimes } from 'react-icons/fa';
 import AuthModal from '../AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { signIn } from '../../services/authService';
 
+// ✅ Componente interno para o perfil do usuário, que só renderiza quando necessário
+const UserProfileLink = React.memo(() => {
+  const { user } = useAuth();
+  const avatarUrl = user?.user_metadata?.avatar_url;
+  const username = user?.user_metadata?.username || user?.email;
+
+  return (
+    <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="Avatar do usuário" className="w-7 h-7 rounded-full object-cover" />
+      ) : (
+        <div className="w-7 h-7 rounded-full bg-gray-600"></div>
+      )}
+      <span className="font-semibold text-white">{username}</span>
+    </Link>
+  );
+});
+
 export default function Header() {
   const navigate = useNavigate();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
-
+  
+  // ✅ Pegamos apenas as propriedades que causam mudanças visuais
   const { user, signOut, isLoading } = useAuth();
 
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
-  console.log('[Header] Renderizando com os valores do contexto:', { isLoading, user });
+
   const handleSignInClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -40,16 +59,12 @@ export default function Header() {
     }
   };
 
-  // ✅ Pega a URL do avatar dos metadados do usuário
-  const avatarUrl = user?.user_metadata?.avatar_url;
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 z-50 py-3 transition-all">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-              {/* Ícone do sabonete */}
               <div className="relative mr-2">
                 <div className="w-6 h-8 bg-pink-500 rounded-sm transform rotate-12 shadow-sm"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-6 bg-pink-300 rounded-sm transform rotate-12"></div>
@@ -72,16 +87,9 @@ export default function Header() {
             {isLoading ? (
               <div className="h-6 w-24 bg-gray-700 rounded-md animate-pulse"></div>
             ) : user ? (
-              // ✅ O link do perfil agora mostra a imagem do avatar
               <div className="flex items-center gap-4">
-                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar do usuário" className="w-7 h-7 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gray-600"></div>
-                  )}
-                  <span className="font-semibold text-white">{user.user_metadata?.username || user.email}</span>
-                </Link>
+                {/* ✅ Usamos o componente memorizado aqui */}
+                <UserProfileLink />
                 <button onClick={signOut} className="font-semibold text-gray-400 hover:text-white">SAIR</button>
               </div>
             ) : (
@@ -93,13 +101,13 @@ export default function Header() {
                   </div>
                 )}
                 {showLoginForm && (
-                  <div className="flex items-center justify-end w-full gap-2">
+                   <div className="flex items-center justify-end w-full gap-2">
                     <button onClick={handleCloseLoginForm} className="p-1.5 text-gray-400 hover:text-white" aria-label="Fechar"><FaTimes size={16} /></button>
                     <div className="relative">
                       <form onSubmit={handleLogin} className="hidden md:flex items-center space-x-2">
                         <input
                           type="text"
-                          placeholder="Email"
+                          placeholder="Usuário ou Email"
                           value={loginIdentifier}
                           onChange={(e) => setLoginIdentifier(e.target.value)}
                           className={`px-2 py-1 w-36 bg-gray-700 border rounded text-white text-xs focus:outline-none focus:ring-1 ${loginError ? 'border-red-500 ring-red-500' : 'border-gray-600 focus:ring-cyan-500'}`}
@@ -120,7 +128,6 @@ export default function Header() {
                         </div>
                       )}
                     </div>
-                    <a href="#" className="text-xs text-gray-400 hover:text-white whitespace-nowrap">Esqueci a senha</a>
                   </div>
                 )}
 

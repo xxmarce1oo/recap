@@ -1,22 +1,21 @@
 // arquivo: src/contexts/AuthContext.tsx
 
-import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Session, User } from '@supabase/supabase-js';
 
-// ✅ Interface simplificada para evitar quaisquer conflitos de tipo
 export interface Profile {
   id: string;
   username: string;
   avatar_url: string;
-  is_verified?: boolean; // Opcional para não quebrar se a coluna não existir
+  is_verified?: boolean;
 }
 
 interface AuthContextType {
   isLoading: boolean;
   session: Session | null;
   user: User | null;
-  profile: Profile | null;
+  profile: Profile | null; // Manteremos o perfil para outras partes da app
   signOut: () => void;
 }
 
@@ -28,52 +27,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchUserProfile = useCallback(async (user: User) => {
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    setProfile(userProfile as Profile | null);
+  }, []);
+
   useEffect(() => {
-    // Busca a sessão e o perfil apenas uma vez no carregamento inicial
     const getInitialData = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const { data: userProfile, error } = await supabase
-            .from('profiles')
-            .select('*') // Busca tudo para evitar erros de campos em falta
-            .eq('id', session.user.id)
-            .single();
-
-          if (error) throw error;
-          setProfile(userProfile as Profile | null);
-        }
-      } catch (error) {
-        console.error("AuthContext Error on initial fetch:", error);
-      } finally {
-        // ✅ A GARANTIA: Esta linha é executada sempre, desbloqueando a aplicação.
-        setIsLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserProfile(session.user);
       }
+      setIsLoading(false);
     };
 
     getInitialData();
 
-    // Escuta apenas as mudanças de login/logout futuras
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // Se o utilizador fizer logout, o perfil será limpo na próxima recarga ou busca de dados.
+      if (session?.user) {
+        fetchUserProfile(session.user);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    setProfile(null);
-  };
-
-  const value = { isLoading, session, user, profile, signOut };
+  }, []);
+  
+  // O useMemo continua importante para evitar re-renders em componentes que não mudaram
+  const value = useMemo(() => ({
+    isLoading,
+    session,
+    user,
+    profile,
+    signOut
+  }), [isLoading, session, user, profile, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
