@@ -1,21 +1,22 @@
 // arquivo: src/pages/UserListsPage.tsx
 
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+// ✅ CORREÇÃO 1: Importamos 'EnrichedListInvitation' em vez de 'ListInvitation'
 import { UserList } from '../models/list';
-import { getListsByUserId, deleteList, getPendingInvitationsForUser, acceptInvitation, declineInvitation, ListInvitation } from '../services/listService';
-import { FaPlus, FaTrashAlt, FaEdit, FaTimes, FaEnvelopeOpenText, FaCheck, FaTimesCircle } from 'react-icons/fa';
+import { getListsByUserId, deleteList, getPendingInvitationsForUser, acceptInvitation, declineInvitation, EnrichedListInvitation } from '../services/listService';
+import { FaPlus, FaEnvelopeOpenText } from 'react-icons/fa';
 
 import ListFormModal from '../components/ListFormModal';
 import InvitationInboxModal from '../components/InvitationInboxModal';
 
 export default function UserListsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
 
   const [userLists, setUserLists] = useState<UserList[]>([]);
-  const [pendingInvitations, setPendingInvitations] = useState<ListInvitation[]>([]);
+  // ✅ CORREÇÃO 1 (continuação): Usamos o tipo correto no estado
+  const [pendingInvitations, setPendingInvitations] = useState<EnrichedListInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,8 +45,10 @@ export default function UserListsPage() {
   }, [user]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!authLoading) {
+        fetchData();
+    }
+  }, [fetchData, authLoading]);
 
   const handleDeleteList = async (listId: string) => {
     if (!user) {
@@ -63,11 +66,12 @@ export default function UserListsPage() {
       alert(err.message || 'Não foi possível deletar a lista.');
     }
   };
-
+  
+  // ✅ CORREÇÃO 2: A chamada para acceptInvitation agora passa apenas 1 argumento
   const handleAcceptInvitation = async (invitationId: string) => {
     if (!user) return;
     try {
-      await acceptInvitation(invitationId, user.id);
+      await acceptInvitation(invitationId);
       alert('Convite aceito! A lista agora está na sua coleção.');
       fetchData();
     } catch (err: any) {
@@ -111,13 +115,12 @@ export default function UserListsPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold">Minhas Listas</h1>
         <div className="flex gap-4">
-          {/* ✅ CORREÇÃO: Botão sempre visível e com cor roxa */}
           <button
             onClick={() => setIsInvitationModalOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors relative" // ✅ Cores alteradas aqui
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors relative"
           >
             <FaEnvelopeOpenText /> Convites
-            {pendingInvitations.length > 0 && ( /* ✅ Manter o badge de notificação condicional */
+            {pendingInvitations.length > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                 {pendingInvitations.length}
               </span>
@@ -157,13 +160,6 @@ export default function UserListsPage() {
                 >
                   Ver Lista
                 </Link>
-                <button
-                  onClick={() => handleDeleteList(list.id)}
-                  className="text-red-400 hover:text-red-300 transition-colors text-sm font-semibold"
-                  title="Deletar lista"
-                >
-                  <FaTrashAlt />
-                </button>
               </div>
             </div>
           ))}
@@ -177,6 +173,8 @@ export default function UserListsPage() {
         onClose={() => setIsInvitationModalOpen(false)}
         pendingInvitations={pendingInvitations}
         onInvitationsUpdate={fetchData}
+        onAccept={handleAcceptInvitation}
+        onDecline={handleDeclineInvitation}
       />
     </div>
   );
