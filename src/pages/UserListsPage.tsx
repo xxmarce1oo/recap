@@ -4,22 +4,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserList } from '../models/list';
-import { getListsByUserId, deleteList } from '../services/listService';
-import { FaPlus, FaTrashAlt, FaEdit, FaTimes } from 'react-icons/fa';
+import { getListsByUserId, deleteList, getPendingInvitationsForUser, acceptInvitation, declineInvitation, ListInvitation } from '../services/listService';
+import { FaPlus, FaTrashAlt, FaEdit, FaTimes, FaEnvelopeOpenText, FaCheck, FaTimesCircle } from 'react-icons/fa';
 
-// Por enquanto, não importaremos o ListFormModal, mas ele será criado em breve.
-import ListFormModal from '../components/ListFormModal'; // ✅ Já incluímos o modal na resposta anterior, então importamos aqui
+import ListFormModal from '../components/ListFormModal';
+import InvitationInboxModal from '../components/InvitationInboxModal';
 
 export default function UserListsPage() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [userLists, setUserLists] = useState<UserList[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<ListInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInvitationModalOpen, setIsInvitationModalOpen] = useState(false);
 
-  const fetchUserLists = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -29,20 +31,24 @@ export default function UserListsPage() {
     try {
       const lists = await getListsByUserId(user.id);
       setUserLists(lists);
+
+      const invitations = await getPendingInvitationsForUser(user.id);
+      setPendingInvitations(invitations);
+
     } catch (err: any) {
       console.error(err);
-      setError('Não foi possível carregar suas listas.');
+      setError('Não foi possível carregar suas listas ou convites.');
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchUserLists();
-  }, [fetchUserLists]);
+    fetchData();
+  }, [fetchData]);
 
   const handleDeleteList = async (listId: string) => {
-    if (!user) { // ✅ Adicionar verificação para user
+    if (!user) {
       alert('Você precisa estar logado para deletar uma lista.');
       return;
     }
@@ -50,13 +56,39 @@ export default function UserListsPage() {
       return;
     }
     try {
-      await deleteList(listId, user.id); // ✅ CORREÇÃO: Passar user.id como segundo argumento
-      fetchUserLists();
+      await deleteList(listId, user.id);
+      fetchData();
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Não foi possível deletar a lista.'); // Melhorar mensagem de erro
+      alert(err.message || 'Não foi possível deletar a lista.');
     }
   };
+
+  const handleAcceptInvitation = async (invitationId: string) => {
+    if (!user) return;
+    try {
+      await acceptInvitation(invitationId, user.id);
+      alert('Convite aceito! A lista agora está na sua coleção.');
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Não foi possível aceitar o convite.');
+    }
+  };
+
+  const handleDeclineInvitation = async (invitationId: string) => {
+    if (!user) return;
+    if (!window.confirm('Tem certeza que deseja recusar este convite?')) return;
+    try {
+      await declineInvitation(invitationId, user.id);
+      alert('Convite recusado.');
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Não foi possível recusar o convite.');
+    }
+  };
+
 
   if (authLoading) {
     return <div className="text-center py-24">A carregar...</div>;
@@ -78,12 +110,26 @@ export default function UserListsPage() {
     <div className="container mx-auto px-6 md:px-12 py-24">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold">Minhas Listas</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <FaPlus /> Nova Lista
-        </button>
+        <div className="flex gap-4">
+          {/* ✅ CORREÇÃO: Botão sempre visível e com cor roxa */}
+          <button
+            onClick={() => setIsInvitationModalOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors relative" // ✅ Cores alteradas aqui
+          >
+            <FaEnvelopeOpenText /> Convites
+            {pendingInvitations.length > 0 && ( /* ✅ Manter o badge de notificação condicional */
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {pendingInvitations.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <FaPlus /> Nova Lista
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -124,8 +170,14 @@ export default function UserListsPage() {
         </div>
       )}
 
-      {/* O modal será renderizado aqui quando for implementado */}
-      <ListFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onCreateSuccess={fetchUserLists} />
+      <ListFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onCreateSuccess={fetchData} />
+
+      <InvitationInboxModal
+        isOpen={isInvitationModalOpen}
+        onClose={() => setIsInvitationModalOpen(false)}
+        pendingInvitations={pendingInvitations}
+        onInvitationsUpdate={fetchData}
+      />
     </div>
   );
 }

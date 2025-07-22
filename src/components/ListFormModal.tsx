@@ -51,37 +51,46 @@ export default function ListFormModal({ isOpen, onClose, onCreateSuccess }: Prop
     setSelectedMovies(prev => prev.filter(movie => movie.id !== movieId));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) {
-      setError('Você precisa estar logado para criar uma lista.');
-      return;
+        setError('Você precisa estar logado para criar uma lista.');
+        return;
     }
 
     if (!listName.trim()) {
-      setError('O nome da lista não pode estar vazio.');
-      return;
+        setError('O nome da lista não pode estar vazio.');
+        return;
     }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      await createList({
-        user_id: user.id,
-        name: listName.trim(),
-        description: listDescription.trim() || null,
-        movies_ids: selectedMovies.map(movie => movie.id),
-      });
-      onCreateSuccess(); // Informa à página principal que uma nova lista foi criada
-      onClose(); // Fecha o modal
+        // Adicione este console.log para depuração
+        console.log('Tentando criar lista com user.id:', user.id);
+        console.log('Dados a enviar:', {
+            user_id: user.id,
+            name: listName.trim(),
+            description: listDescription.trim() || null,
+            movies_ids: selectedMovies.map(movie => movie.id),
+        });
+
+        await createList({
+            user_id: user.id, //
+            name: listName.trim(), //
+            description: listDescription.trim() || null, //
+            movies_ids: selectedMovies.map(movie => movie.id), //
+        });
+        onCreateSuccess(); //
+        onClose(); //
     } catch (err: any) {
-      console.error('Erro ao criar lista:', err);
-      setError(err.message || 'Ocorreu um erro ao criar a lista. Tente novamente.');
+        console.error('Erro ao criar lista:', err); //
+        setError(err.message || 'Ocorreu um erro ao criar a lista. Tente novamente.'); //
     } finally {
-      setIsLoading(false);
+        setIsLoading(false); //
     }
-  };
+};
 
   return (
     <>

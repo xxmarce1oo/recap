@@ -3,7 +3,20 @@
 import { supabase } from '../lib/supabaseClient';
 import { UserList, EnrichedUserList } from '../models/list';
 import { getMovieDetails } from './tmdbService';
-import { Movie } from '../models/movie'; // ✅ NOVO: Importar a interface Movie
+import { Movie } from '../models/movie';
+
+// INTERFACE CORRIGIDA E ENRIQUECIDA PARA CONVITES
+export interface EnrichedListInvitation {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  lists: { // O Supabase vai aninhar os dados da lista aqui
+    name: string;
+    description: string | null;
+  } | null; // Pode ser um objeto ou nulo
+  sender_profile: { // E os dados do perfil do remetente aqui
+    username: string;
+  } | null; // Pode ser um objeto ou nulo
+}
 
 /**
  * Funções auxiliares de autorização
@@ -124,7 +137,7 @@ export const getListById = async (listId: string): Promise<EnrichedUserList | nu
  * @param userId O ID do usuário tentando adicionar o filme (para verificação de permissão).
  */
 export const addMovieToList = async (listId: string, movieId: number, userId: string): Promise<void> => {
-  const existingList = await getListAndCheckAuthorization(listId, userId);
+  await getListAndCheckAuthorization(listId, userId);
 
   const { data: fullList, error: fetchError } = await supabase
     .from('lists')
@@ -165,7 +178,7 @@ export const addMovieToList = async (listId: string, movieId: number, userId: st
  * @param userId O ID do usuário tentando remover o filme (para verificação de permissão).
  */
 export const removeMovieFromList = async (listId: string, movieId: number, userId: string): Promise<void> => {
-  const existingList = await getListAndCheckAuthorization(listId, userId);
+  await getListAndCheckAuthorization(listId, userId);
 
   const { data: fullList, error: fetchError } = await supabase
     .from('lists')
@@ -257,7 +270,7 @@ export const removeCollaboratorFromList = async (listId: string, ownerId: string
     throw new Error('O proprietário da lista não pode ser removido como colaborador.');
   }
 
-  const updatedCollaborators = (list.collaborator_ids || []).filter((id: string) => id !== collaboratorToRemoveId); // ✅ CORREÇÃO: Tipar 'id' aqui
+  const updatedCollaborators = (list.collaborator_ids || []).filter((id: string) => id !== collaboratorToRemoveId);
 
   const { error } = await supabase
     .from('lists')
@@ -267,5 +280,125 @@ export const removeCollaboratorFromList = async (listId: string, ownerId: string
   if (error) {
     console.error('Erro ao remover colaborador:', error);
     throw new Error('Não foi possível remover o colaborador.');
+  }
+};
+
+/**
+ * Envia um convite para um usuário ser colaborador de uma lista.
+ * Requer que o remetente seja o proprietário da lista.
+ * @param listId ID da lista.
+ * @param senderUserId ID do usuário que está enviando o convite.
+ * @param recipientUserId ID do usuário que está sendo convidado.
+ */
+export const sendInvitation = async (listId: string, senderUserId: string, recipientUserId: string): Promise<void> => {
+  await getListAndCheckAuthorization(listId, senderUserId, true);
+
+  const { data: list, error: listFetchError } = await supabase
+    .from('lists')
+    .select('user_id, collaborator_ids')
+    .eq('id', listId)
+    .single();
+
+  if (listFetchError || !list) {
+    throw new Error('Lista não encontrada.');
+  }
+
+  if (list.user_id === recipientUserId || list.collaborator_ids?.includes(recipientUserId)) {
+    throw new Error('Este usuário já tem acesso a esta lista.');
+  }
+
+  const { data: existingInvite } = await supabase
+    .from('list_invitations')
+    .select('id')
+    .eq('list_id', listId)
+    .eq('recipient_user_id', recipientUserId)
+    .eq('status', 'pending')
+    .single();
+
+  if (existingInvite) {
+    throw new Error('Já existe um convite pendente para este usuário nesta lista.');
+  }
+
+  const { error } = await supabase
+    .from('list_invitations')
+    .insert({
+      list_id: listId,
+      sender_user_id: senderUserId,
+      recipient_user_id: recipientUserId,
+      status: 'pending',
+    });
+
+  if (error) {
+    console.error('Erro ao enviar convite:', error);
+    throw new Error('Não foi possível enviar o convite. Tente novamente.');
+  }
+};
+
+/**
+ * Busca todos os convites pendentes para um usuário, incluindo o nome da lista e do remetente.
+ * @param userId O ID do usuário para o qual buscar os convites.
+ */
+export const getPendingInvitationsForUser = async (userId: string): Promise<EnrichedListInvitation[]> => {
+  const { data: invitations, error: invitesError } = await supabase
+    .from('list_invitations')
+    .select('id, status, list_id, sender_user_id')
+    .eq('recipient_user_id', userId)
+    .eq('status', 'pending');
+
+  if (invitesError) {
+    console.error('Erro ao buscar convites pendentes:', invitesError);
+    throw new Error('Não foi possível buscar os convites.');
+  }
+
+  if (!invitations || invitations.length === 0) {
+    return [];
+  }
+
+  const uniqueListIds = [...new Set(invitations.map(invite => invite.list_id))];
+  const uniqueSenderIds = [...new Set(invitations.map(invite => invite.sender_user_id))];
+
+  const { data: listsData } = await supabase.from('lists').select('id, name, description').in('id', uniqueListIds);
+  const { data: profilesData } = await supabase.from('profiles').select('id, username').in('id', uniqueSenderIds);
+
+  const listsMap = new Map(listsData?.map(list => [list.id, list]));
+  const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]));
+
+  const enrichedInvitations = invitations.map(invite => ({
+    ...invite,
+    // ✅ CORREÇÃO: A propriedade chama-se `lists` para corresponder à interface.
+    lists: listsMap.get(invite.list_id) || null,
+    sender_profile: profilesMap.get(invite.sender_user_id) || null,
+  }));
+
+  return enrichedInvitations as EnrichedListInvitation[];
+};
+  
+/**
+ * Aceita um convite para colaborar numa lista usando a função RPC segura.
+ */
+export const acceptInvitation = async (invitationId: string): Promise<void> => {
+  const { error } = await supabase.rpc('accept_list_invitation', {
+    p_invitation_id: invitationId,
+  });
+
+  if (error) {
+    console.error('Erro ao aceitar convite via RPC:', error);
+    throw new Error(error.message || 'Não foi possível aceitar o convite.');
+  }
+};
+
+/**
+ * Recusa (deleta) um convite pendente.
+ */
+export const declineInvitation = async (invitationId: string, userId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('list_invitations')
+    .delete()
+    .eq('id', invitationId)
+    .eq('recipient_user_id', userId);
+
+  if (error) {
+    console.error('Erro ao rejeitar convite:', error);
+    throw new Error('Não foi possível rejeitar o convite.');
   }
 };
