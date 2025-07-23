@@ -19,6 +19,7 @@ import DiaryPage from './pages/DiaryPage'
 import UserListsPage from './pages/UserListsPage'
 import ListPageDetails from './pages/ListPageDetails'
 import LogDetailsPage from './pages/LogDetailsPage'
+import RecommendationsPage from './pages/RecommendationsPage'
 
 
 import { AuthProvider } from './contexts/AuthContext'
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
       { path: 'profile/following', element: <FollowingPage /> }, // Rota para quem o próprio usuário segue
       { path: 'lists', element: <UserListsPage /> },
       { path: 'lists/:listId', element: <ListPageDetails /> }, // Rota temporária para detalhes da lista (será desenvolvida depois)
+      { path: 'recommendations', element: <RecommendationsPage /> },
     ]
   }
 ])

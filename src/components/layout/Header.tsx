@@ -120,6 +120,7 @@ export default function Header() {
               <Link to="/films" className="font-semibold text-gray-300 hover:text-white transition-colors">FILMES</Link>
               <Link to="/lists" className="font-semibold text-gray-300 hover:text-white transition-colors">LISTAS</Link>
               <Link to="/members" className="font-semibold text-gray-300 hover:text-white transition-colors">MEMBROS</Link>
+              <Link to="/recommendations" className="font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">PARA VOCÊ</Link>
             </nav>
           </div>
 
