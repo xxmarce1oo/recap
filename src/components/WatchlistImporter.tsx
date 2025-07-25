@@ -8,6 +8,17 @@ import { addMovieToWatchlist } from '../services/watchlistService';
 import { FaUpload, FaSpinner, FaCheckCircle, FaTimesCircle, FaFileCsv } from 'react-icons/fa';
 import Fuse from 'fuse.js';
 
+// Definição do tipo Movie (ajuste conforme a estrutura real do seu projeto)
+interface Movie {
+  id: number;
+  title: string;
+  original_title?: string;
+  release_date?: string;
+  poster_path?: string | null;
+  vote_average?: number;
+  [key: string]: any;
+}
+
 interface WatchlistImporterProps {
   onImportComplete: () => void;
 }
@@ -70,18 +81,23 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
       for (const entry of entries) {
         try {
           const searchResults = await searchMovies(entry.title);
-          let movieFound = null;
+          let movieFound: Movie | null = null;
+          
+          // ✅ FILTRO INICIAL: Remove filmes sem poster ou com nota 0 ANTES da busca
+          const validMovies = searchResults.results.filter(
+            movie => movie.poster_path && movie.vote_average > 0
+          );
 
-          if (searchResults.results.length > 0) {
-            const fuse = new Fuse(searchResults.results, fuseOptions);
+          if (validMovies.length > 0) {
+            const fuse = new Fuse(validMovies, fuseOptions);
             const fuseResult = fuse.search(entry.title);
+            
+            // Tenta encontrar a melhor correspondência que também bata o ano
+            const bestMatchByYear = fuseResult.find(
+              item => item.item.release_date?.substring(0, 4) === entry.year
+            );
 
-            if (fuseResult.length > 0) {
-              const bestMatch = fuseResult.find(item => item.item.release_date?.substring(0, 4) === entry.year);
-              movieFound = bestMatch ? bestMatch.item : fuseResult[0].item;
-            } else {
-              movieFound = searchResults.results[0];
-            }
+            movieFound = bestMatchByYear ? bestMatchByYear.item : fuseResult[0]?.item;
           }
 
           if (movieFound) {
