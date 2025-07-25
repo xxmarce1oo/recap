@@ -1,29 +1,18 @@
 // arquivo: src/components/WatchlistImporter.tsx
 
-import React, { useState, useCallback, DragEvent } from 'react';
+import React, { useState, DragEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { parseLetterboxdWatchlistCsv } from '../utils/csvProcessor';
 import { searchMovies } from '../services/tmdbService';
 import { addMovieToWatchlist } from '../services/watchlistService';
 import { FaUpload, FaSpinner, FaCheckCircle, FaTimesCircle, FaFileCsv } from 'react-icons/fa';
 import Fuse from 'fuse.js';
-
-// Definição do tipo Movie (ajuste conforme a estrutura real do seu projeto)
-interface Movie {
-  id: number;
-  title: string;
-  original_title?: string;
-  release_date?: string;
-  poster_path?: string | null;
-  vote_average?: number;
-  [key: string]: any;
-}
+import { Movie } from '../models/movie';
 
 interface WatchlistImporterProps {
   onImportComplete: () => void;
 }
 
-// Enum para gerenciar os estados da UI de forma mais clara
 enum ImportStatus {
   Idle,
   Loading,
@@ -38,15 +27,9 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
   const [message, setMessage] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Lógica de importação (mantida a mesma, pois já é robusta)
   const handleImport = async () => {
-    if (!user) {
-      setMessage('Você precisa estar logado para importar sua watchlist.');
-      setStatus(ImportStatus.Error);
-      return;
-    }
-    if (!selectedFile) {
-      setMessage('Por favor, selecione um arquivo CSV para importar.');
+    if (!user || !selectedFile) {
+      setMessage('Por favor, faça login e selecione um arquivo CSV.');
       setStatus(ImportStatus.Error);
       return;
     }
@@ -54,11 +37,7 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
     setStatus(ImportStatus.Loading);
     setMessage('Iniciando importação... Isso pode levar um momento.');
 
-    // A lógica interna de busca e adição foi mantida
-    // ... (código de processamento, fuse.js, etc.)
-    // Para abreviar a explicação, vou colar a lógica original que já funciona bem.
     let importedCount = 0;
-    let skippedCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
 
@@ -67,23 +46,16 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
       setMessage(`Processando ${entries.length} filmes...`);
 
       const fuseOptions = {
-        includeScore: true,
-        keys: [
-          { name: 'title', weight: 0.8 },
-          { name: 'original_title', weight: 0.5 },
-          { name: 'release_date', getFn: (movie: any) => movie.release_date?.substring(0, 4), weight: 0.7 }
-        ],
-        threshold: 0.3,
-        distance: 100,
-        ignoreLocation: true
+        // A busca Fuse.js agora foca apenas nos títulos
+        keys: ['title', 'original_title'],
+        threshold: 0.4, // Um pouco mais flexível para pequenas diferenças de título
       };
 
-      for (const entry of entries) {
+for (const entry of entries) {
         try {
-          const searchResults = await searchMovies(entry.title);
+          const searchResults = await searchMovies(entry.title, 'en-US');
           let movieFound: Movie | null = null;
           
-          // ✅ FILTRO INICIAL: Remove filmes sem poster ou com nota 0 ANTES da busca
           const validMovies = searchResults.results.filter(
             movie => movie.poster_path && movie.vote_average > 0
           );
@@ -91,13 +63,26 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
           if (validMovies.length > 0) {
             const fuse = new Fuse(validMovies, fuseOptions);
             const fuseResult = fuse.search(entry.title);
-            
-            // Tenta encontrar a melhor correspondência que também bata o ano
-            const bestMatchByYear = fuseResult.find(
-              item => item.item.release_date?.substring(0, 4) === entry.year
-            );
 
-            movieFound = bestMatchByYear ? bestMatchByYear.item : fuseResult[0]?.item;
+            // ✅ NOVA LÓGICA DE PONTUAÇÃO:
+            const scoredResults = fuseResult.map(result => {
+              const movie = result.item;
+              // A pontuação do Fuse.js (0 = perfeito, 1 = oposto)
+              const titleScore = result.score ?? 1;
+
+              // Adiciona uma penalidade se o ano não for uma correspondência exata
+              const yearMatches = movie.release_date?.substring(0, 4) === entry.year;
+              const yearPenalty = yearMatches ? 0 : 0.4; // Penalidade significativa, mas não eliminatória
+
+              const finalScore = titleScore + yearPenalty;
+              return { movie, finalScore };
+            });
+
+            // Ordena pela menor pontuação final e escolhe o melhor
+            if (scoredResults.length > 0) {
+              scoredResults.sort((a, b) => a.finalScore - b.finalScore);
+              movieFound = scoredResults[0].movie;
+            }
           }
 
           if (movieFound) {
@@ -105,7 +90,7 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
             importedCount++;
           } else {
             failedCount++;
-            errors.push(`Filme "${entry.title} (${entry.year})" não encontrado.`);
+            errors.push(`Filme "${entry.title} (${entry.year})" não encontrado com os critérios.`);
           }
         } catch (innerError: any) {
           failedCount++;
@@ -115,8 +100,8 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
 
       let successMessage = `Importação concluída! ${importedCount} filme(s) adicionado(s).`;
       if (failedCount > 0) {
-        successMessage += ` ${failedCount} falha(s).`;
-        console.warn('Erros durante a importação:', errors);
+        successMessage += ` ${failedCount} não foram importados.`;
+        console.warn('Erros/Filmes não importados:', errors);
       }
 
       setMessage(successMessage);
@@ -127,18 +112,17 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
       setMessage(`Erro ao ler o arquivo CSV: ${error.message || 'Verifique o formato do arquivo.'}`);
       setStatus(ImportStatus.Error);
     } finally {
-      setSelectedFile(null); // Limpa o arquivo após o processo
+      setSelectedFile(null);
     }
   };
   
-  // Reseta o estado quando o usuário quer fazer um novo upload
+  // O restante do arquivo (handleReset, handleFileChange, renderContent, etc.) permanece o mesmo.
   const handleReset = () => {
     setSelectedFile(null);
     setStatus(ImportStatus.Idle);
     setMessage('');
   };
 
-  // Funções para lidar com arrastar e soltar (drag and drop)
   const handleFileChange = (files: FileList | null) => {
     if (files && files[0]) {
       if (files[0].type === 'text/csv' || files[0].name.endsWith('.csv')) {
@@ -169,8 +153,6 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
     handleFileChange(e.dataTransfer.files);
   };
 
-
-  // Renderização condicional para cada estado
   const renderContent = () => {
     switch (status) {
       case ImportStatus.Loading:
@@ -199,7 +181,7 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
             <button onClick={handleReset} className="mt-4 text-sm text-cyan-400 hover:underline">Tentar novamente</button>
           </div>
         );
-      default: // Idle
+      default:
         return (
             <div className="text-center">
               <input
@@ -232,7 +214,6 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
       <h3 className="text-lg font-bold mb-1">Importar do Letterboxd</h3>
       <p className="text-sm text-gray-400 mb-4">Adicione filmes à sua watchlist a partir do seu arquivo de exportação.</p>
 
-      {/* Se um arquivo for selecionado, mostra um painel diferente */}
       {selectedFile && status === ImportStatus.Idle ? (
         <div className="bg-gray-700/50 p-4 rounded-md flex items-center justify-between">
             <div className='flex items-center gap-3'>

@@ -135,13 +135,15 @@ export const getMovieImages = async (movieId: number) => {
   return response.data; 
 };
 
-export const searchMovies = async (query: string): Promise<ApiResponse<Movie>> => {
+// A função searchMovies foi atualizada para aceitar um idioma
+export const searchMovies = async (query: string, language: string = 'pt-BR'): Promise<ApiResponse<Movie>> => {
   if (!query) return { page: 1, results: [], total_pages: 0, total_results: 0 };
   const response = await fetch(
-    `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=pt-BR`
+    `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=${language}`
   );
   return await response.json();
 };
+
 
 /**
  * Busca as imagens de um filme, ordena os backdrops por relevância (votos e nota)
