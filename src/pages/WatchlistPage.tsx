@@ -7,6 +7,7 @@ import { getMovieDetails } from '../services/tmdbService';
 import { Movie } from '../models/movie';
 import MovieCard from '../components/MovieCard';
 import { Link } from 'react-router-dom';
+import WatchlistImporter from '../components/WatchlistImporter'; // <-- ADICIONE ESTA LINHA
 
 // ✅ CORREÇÃO: A palavra "default" estava faltando aqui.
 export default function WatchlistPage() {
@@ -65,11 +66,26 @@ export default function WatchlistPage() {
           </div>
       )
   }
-
+  const handleImportSuccess = () => {
+    // Recarrega a watchlist após a importação
+    setWatchlistMovies([]);
+    setIsLoading(true);
+    getWatchlist(user.id).then(movieIds => {
+      const moviePromises = movieIds.map(id => getMovieDetails(id).catch(() => null));
+      Promise.all(moviePromises).then(movies => {
+        setWatchlistMovies(movies.filter(Boolean) as Movie[]);
+        setIsLoading(false);
+      });
+    });
+  };
   return (
     <div className="bg-gray-900 min-h-screen text-white">
       <div className="container mx-auto px-6 md:px-12 py-24">
         <h1 className="text-4xl md:text-5xl font-bold mb-8">Minha Watchlist</h1>
+        {/* ADICIONE O COMPONENTE DO IMPORTADOR AQUI */}
+        <div className="mb-8">
+          <WatchlistImporter onImportComplete={handleImportSuccess} />
+        </div>
         
         {isLoading ? (
           <p className="text-center text-lg">Carregando sua lista...</p>
