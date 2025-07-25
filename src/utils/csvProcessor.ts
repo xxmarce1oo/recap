@@ -1,6 +1,6 @@
 // arquivo: src/utils/csvProcessor.ts
 
-import Papa, { ParseResult, ParseError } from 'papaparse';
+import Papa, { ParseResult } from 'papaparse';
 
 // Interface para as colunas do seu arquivo CSV da watchlist do Letterboxd
 interface LetterboxdWatchlistEntryCsv {
@@ -46,7 +46,7 @@ export const parseLetterboxdWatchlistCsv = (file: File): Promise<ProcessedWatchl
 
           resolve(processedData);
         },
-        error: (error: Error, file: File) => {
+        error: (error: Error) => {
           reject(error);
         },
       });
