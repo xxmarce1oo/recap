@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "hash": "8633bb6ac46896c2ee8496a800fcd4de1cad947b",
+    "date": "2025-07-26 09:54:57 -0300",
+    "message": "Melhoria no Sistema de Recomendações",
+    "description": "O sistema foi atualizado para ser mais robusto e inteligente.\n\n- Adicionada uma lógica de fallback que utiliza os filmes mais recentes do usuário se não houver filmes com nota alta.\n- Implementado um placeholder na página inicial para guiar o usuário a avaliar filmes e receber recomendações."
+  },
+  {
+    "hash": "a192536ff22815e240154e0415a51d2c6cec6156",
+    "date": "2025-07-26 09:52:55 -0300",
+    "message": "Melhoria no Sistema de Recomendações",
+    "description": "O sistema foi atualizado para ser mais robusto e inteligente.\n\n- Adicionada uma lógica de fallback que utiliza os filmes mais recentes do usuário se não houver filmes com nota alta.\n- Implementado um placeholder na página inicial para guiar o usuário a avaliar filmes e receber recomendações."
+  },
+  {
+    "hash": "eae352c5b8fa640ccf711c7ac4974eea6de842da",
+    "date": "2025-07-26 09:51:57 -0300",
+    "message": "Melhoria no Sistema de Recomendações",
+    "description": "O sistema foi atualizado para ser mais robusto e inteligente.\n\n- Adicionada uma lógica de fallback que utiliza os filmes mais recentes do usuário se não houver filmes com nota alta.\n- Implementado um placeholder na página inicial para guiar o usuário a avaliar filmes e receber recomendações."
+  },
+  {
+    "hash": "39a74b3a2ff7b261cca2a9f3ff847bd0341ebbcf",
+    "date": "2025-07-26 09:47:31 -0300",
+    "message": "Testando Registro",
+    "description": ""
+  },
+  {
+    "hash": "72b58702599e32a23f6a556fc8070c4e6fa8015b",
+    "date": "2025-07-26 09:44:05 -0300",
+    "message": "Adicionado sistema de recomendações e changelog automático",
+    "description": ""
+  }
+]

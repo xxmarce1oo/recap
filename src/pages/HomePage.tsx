@@ -1,30 +1,49 @@
-// arquivo: src/pages/HomePage.tsx
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MovieCarousel from '../components/MovieCarousel';
 import SkeletonCarousel from '../components/SkeletonCarousel';
 import { useHomePageViewModel } from '../viewmodels/useHomePageViewModel';
 import { useAuth } from '../contexts/AuthContext';
-import { Movie } from '@/models/movie';
-import { getContentBasedRecommendations } from '../services/recommendationService'; // MUDANÇA AQUI
+import { getContentBasedRecommendations } from '../services/recommendationService';
+import { Movie } from '../models/movie';
+import { FaArrowRight } from 'react-icons/fa'; // Importar o ícone
+
+// Interface para o tipo de dado do update
+interface Update {
+  message: string;
+}
 
 export default function HomePage() {
   const { nowPlaying, topRated, heroMovie, isLoading, error } = useHomePageViewModel();
   const { user } = useAuth();
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
-  const [recommendations, setRecommendations] = useState<Movie[]>([]); // MUDANÇA AQUI
+  
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(true);
 
-useEffect(() => {
+  // ✅ NOVO ESTADO: para guardar a última atualização
+  const [latestUpdate, setLatestUpdate] = useState<Update | null>(null);
+
+  useEffect(() => {
     if (user) {
       setIsLoadingRecommendations(true);
-      getContentBasedRecommendations(user.id, 6) // MUDANÇA AQUI
+      getContentBasedRecommendations(user.id, 6)
         .then(setRecommendations)
         .catch(err => console.error("Erro ao buscar recomendações:", err))
         .finally(() => setIsLoadingRecommendations(false));
+      
+      // ✅ NOVA LÓGICA: Busca as atualizações
+      fetch('/updates.json')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            setLatestUpdate(data[0]); // Pega apenas o primeiro (mais recente)
+          }
+        })
+        .catch(err => console.error("Erro ao buscar updates.json:", err));
+
     } else {
-      setIsLoadingRecommendations(false);
+        setIsLoadingRecommendations(false);
     }
   }, [user]);
 
@@ -56,20 +75,16 @@ useEffect(() => {
   return (
     <main>
       {/* --- SEÇÃO HERO UNIFICADA --- */}
-      {/* ✅ A MUDANÇA ESTÁ AQUI: a altura foi ajustada para considerar o header */}
-      <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col"> {/* 4rem = 64px (altura do header pt-16) */}
-        {/* Camada 1: Imagem de Fundo */}
+      <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col">
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center"
           style={{ 
             backgroundImage: heroMovie ? `url(https://image.tmdb.org/t/p/original${heroMovie.backdrop_path})` : 'none',
-            backgroundColor: '#111827' // Cor de fundo para o caso de não haver imagem
+            backgroundColor: '#111827'
           }}
         />
-        {/* Camada 2: Overlay escuro para contraste */}
         <div className="absolute inset-0 w-full h-full bg-black/60" />
 
-        {/* Camada 3: Conteúdo Central (ocupa o espaço disponível) */}
         <div className="relative z-10 flex flex-col items-center justify-center flex-grow text-center text-white px-4">
           {isLoading ? (
             <p>Carregando...</p>
@@ -89,6 +104,23 @@ useEffect(() => {
                   Minhas Listas
                 </Link>
               </div>
+
+              {/* ✅ NOVO COMPONENTE DE NOTIFICAÇÃO DE UPDATE */}
+              {latestUpdate && (
+                <div className="mt-10">
+                  <Link to="/updates" className="group inline-flex items-center gap-3 px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg hover:bg-gray-800/80 hover:border-gray-600 transition-all">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                    </span>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-white">Última atualização</p>
+                      <p className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">{latestUpdate.message}</p>
+                    </div>
+                    <FaArrowRight className="text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                  </Link>
+                </div>
+              )}
             </>
           ) : (
             <>

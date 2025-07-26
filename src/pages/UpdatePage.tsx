@@ -53,7 +53,7 @@ export default function UpdatesPage() {
             {updates.map((update) => (
               <div key={update.hash} className="relative pl-8">
                 <div className="absolute -left-[7px] top-1 h-3 w-3 bg-cyan-500 rounded-full"></div>
-                <p className="text-sm text-gray-400 mb-1">{new Date(update.date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-sm text-gray-400 mb-1">{new Date(update.date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric'})}</p>
                 <h2 className="text-xl font-semibold text-white">{update.message}</h2>
                 
                 {/* ✅ Renderiza a descrição se ela existir */}
