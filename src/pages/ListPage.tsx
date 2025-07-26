@@ -102,7 +102,7 @@ export default function ListPage() {
             <p className="text-center text-base sm:text-lg text-red-500">{error}</p>
           ) : movies.length > 0 ? (
             <>
-              <div className="grid grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {movies.map((movie) => (
                   <MovieCard key={`${movie.id}-${Math.random()}`} movie={movie} />
                 ))}

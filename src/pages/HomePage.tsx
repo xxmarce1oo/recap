@@ -1,3 +1,5 @@
+// arquivo: src/pages/HomePage.tsx
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MovieCarousel from '../components/MovieCarousel';
@@ -6,9 +8,8 @@ import { useHomePageViewModel } from '../viewmodels/useHomePageViewModel';
 import { useAuth } from '../contexts/AuthContext';
 import { getContentBasedRecommendations } from '../services/recommendationService';
 import { Movie } from '../models/movie';
-import { FaArrowRight } from 'react-icons/fa'; // Importar o ícone
+import { FaArrowRight } from 'react-icons/fa';
 
-// Interface para o tipo de dado do update
 interface Update {
   message: string;
   color?: string;
@@ -21,8 +22,6 @@ export default function HomePage() {
   
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(true);
-
-  // ✅ NOVO ESTADO: para guardar a última atualização
   const [latestUpdate, setLatestUpdate] = useState<Update | null>(null);
 
   useEffect(() => {
@@ -33,28 +32,24 @@ export default function HomePage() {
         .catch(err => console.error("Erro ao buscar recomendações:", err))
         .finally(() => setIsLoadingRecommendations(false));
       
-      // ✅ NOVA LÓGICA: Busca as atualizações
       fetch('/updates.json')
         .then(res => res.json())
         .then(data => {
           if (data && data.length > 0) {
-            setLatestUpdate(data[0]); // Pega apenas o primeiro (mais recente)
+            setLatestUpdate(data[0]);
           }
         })
         .catch(err => console.error("Erro ao buscar updates.json:", err));
 
     } else {
+        setRecommendations([]);
         setIsLoadingRecommendations(false);
     }
   }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 100) {
-        setShowScrollIndicator(false);
-      } else {
-        setShowScrollIndicator(true);
-      }
+      setShowScrollIndicator(window.scrollY <= 100);
     };
     window.addEventListener('scroll', handleScroll);
     return () => {
@@ -64,8 +59,8 @@ export default function HomePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-400">
+      <div className="min-h-screen flex items-center justify-center text-center text-red-400">
+        <div>
           <p className="text-lg font-semibold">Ocorreu um erro</p>
           <p>{error.message}</p>
         </div>
@@ -75,7 +70,7 @@ export default function HomePage() {
 
   return (
     <main>
-      {/* --- SEÇÃO HERO UNIFICADA --- */}
+      {/* --- SEÇÃO HERO --- */}
       <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col">
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center"
@@ -106,12 +101,10 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* ✅ NOVO COMPONENTE DE NOTIFICAÇÃO DE UPDATE */}
               {latestUpdate && (
                 <div className="mt-8 sm:mt-10">
                   <Link to="/updates" className="group inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg hover:bg-gray-800/80 hover:border-gray-600 transition-all">
                     <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
-                      {/* ✅ CORREÇÃO APLICADA AQUI */}
                       <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${latestUpdate.color} opacity-75`}></span>
                       <span className={`relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 ${latestUpdate.color}`}></span>
                     </span>
@@ -132,27 +125,21 @@ export default function HomePage() {
               <h2 className="mt-4 text-lg sm:text-xl md:text-2xl font-light max-w-3xl px-4" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.7)' }}>
                 Vá além de organizar filmes. Receba <strong className="font-semibold text-cyan-300">recomendações personalizadas</strong> e converse com nossa <strong className="font-semibold text-cyan-300">IA especialista</strong> para encontrar seu próximo filme favorito.
               </h2>
-              <a href="#" onClick={(e) => { e.preventDefault(); /* Lógica para abrir modal de cadastro */ }} className="mt-6 sm:mt-8 bg-cyan-500 hover:bg-cyan-600 font-bold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg text-base sm:text-lg transition-colors">
+              <a href="#" onClick={(e) => { e.preventDefault(); }} className="mt-6 sm:mt-8 bg-cyan-500 hover:bg-cyan-600 font-bold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg text-base sm:text-lg transition-colors">
                 Crie sua conta grátis
               </a>
             </>
           )}
         </div>
         
-        {/* Nome do filme sutil no canto */}
         {heroMovie && (
           <p className="absolute bottom-5 right-5 text-xs text-white/50 tracking-widest uppercase z-10">
             {heroMovie.title}
           </p>
         )}
 
-        {/* Indicador de Scroll com a nova animação suave */}
         <div 
-          className={`
-            absolute bottom-4 left-1/2 -translate-x-1/2 z-10 
-            transition-opacity duration-500 ease-in-out
-            ${showScrollIndicator ? 'opacity-100' : 'opacity-0'}
-          `}
+          className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-10 transition-opacity duration-500 ease-in-out ${showScrollIndicator ? 'opacity-100' : 'opacity-0'}`}
         >
           <div className="flex flex-col items-center text-white/70 animate-gentle-bounce">
               <span className="text-xs">Role para ver</span>
@@ -161,17 +148,15 @@ export default function HomePage() {
         </div>
       </div>
       
-            {/* Container dos Carrosséis */}
-      <div className="container mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-12 space-y-8 sm:space-y-12 bg-gray-900 relative z-10">
+      {/* Container geral para os carrosséis com margens laterais */}
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-12 space-y-8 sm:space-y-12 bg-gray-900 relative z-10">
         
-              {/* Carrossel de Recomendações */}
         {user && (
             isLoadingRecommendations ? (
                 <SkeletonCarousel />
             ) : recommendations.length > 0 ? (
                 <MovieCarousel title="Recomendações para Você" movies={recommendations} />
             ) : (
-                // ✅ NOVA MENSAGEM DE FALLBACK
                 <div className="text-center p-6 sm:p-8 bg-gray-800/50 rounded-lg">
                     <h3 className="text-lg sm:text-xl font-bold text-white">Descubra novos filmes!</h3>
                     <p className="text-gray-400 mt-2 text-sm sm:text-base">
@@ -181,7 +166,6 @@ export default function HomePage() {
             )
         )}
 
-        {/* Carrosséis existentes */}
         {isLoading ? (
           <div className="space-y-8 sm:space-y-12">
             <SkeletonCarousel />

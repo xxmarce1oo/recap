@@ -279,7 +279,7 @@ export default function UserProfilePage() {
                                     )}
                                 </div>
                                 {recentLogs.length > 0 ? (
-                                    <div className="grid grid-cols-4 gap-3 sm:gap-4">
+                                    <div className="grid grid-cols-4 gap-2 sm:gap-3">
                                         {recentLogs.map(log => <DiaryGridItem key={log.id} log={log} />)}
                                     </div>
                                 ) : (
@@ -288,7 +288,7 @@ export default function UserProfilePage() {
                             </div>
                             <div className="border-t border-gray-700/50 pt-6 sm:pt-8">
                                 <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">FILMES FAVORITOS</h2>
-                                <div className="grid grid-cols-4 gap-3 sm:gap-4">
+                                <div className="grid grid-cols-4 gap-2 sm:gap-3">
                                     {favoriteMovies.map((movie, index) => (
                                         <FavoriteMovieSlot
                                             key={index}

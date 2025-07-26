@@ -13,15 +13,16 @@ export default function MovieCard({ movie }: Props) {
     : 'https://via.placeholder.com/500x750?text=No+Image';
 
   return (
-    // ✅ Card responsivo: tamanhos otimizados para caber na tela sem scroll
-    <div className="w-24 sm:w-32 md:w-40 lg:w-48 space-y-2">
+    // ✅ TAMANHO DOS CARDS AUMENTADO: 
+    // O tamanho foi ajustado para preencher melhor o espaço em telas maiores.
+    <div className="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-56 space-y-2">
       <Link to={`/movie/${movie.id}`} className="block group">
         <div className="relative overflow-hidden rounded-lg">
           <img
             src={imageUrl}
             alt={movie.title}
             loading="lazy"
-            className="w-full h-36 sm:h-48 md:h-60 lg:h-72 object-cover transform group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-36 sm:h-48 md:h-60 lg:h-72 xl:h-80 object-cover transform group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300" />
         </div>

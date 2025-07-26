@@ -1,5 +1,14 @@
 [
   {
+    "hash": "22f53de70e0888e07811ecbdb655e8b9928743cc",
+    "date": "2025-07-26 12:17:02 -0300",
+    "type": "feat",
+    "label": "Nova Funcionalidade",
+    "color": "bg-blue-500",
+    "message": "padronizar grids de filmes para 4 colunas em todas as páginas",
+    "description": "- Ajustar página de perfil: filmes recentes e favoritos agora mostram 4 filmes por linha\n- Atualizar WatchlistPage: grid simplificado para 4 colunas fixas\n- Modificar ListPage e ListPageDetails: consistência no layout de 4 colunas\n- Ajustar DiaryPage: padronizar grid para 4 colunas\n- Limitar filmes recentes no perfil para apenas 4 filmes\n- Melhorar experiência mobile com tamanhos menores e consistentes"
+  },
+  {
     "hash": "05b555f6e77f175f6de17127da7d4f719f0183eb",
     "date": "2025-07-26 11:32:21 -0300",
     "type": "perf",

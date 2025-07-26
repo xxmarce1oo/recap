@@ -92,7 +92,7 @@ export default function WatchlistPage() {
         ) : error ? (
           <p className="text-center text-base sm:text-lg text-red-500">{error}</p>
         ) : watchlistMovies.length > 0 ? (
-          <div className="grid grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {watchlistMovies.map(movie => (
               <MovieCard key={movie.id} movie={movie} />
             ))}
