@@ -1,5 +1,14 @@
 [
   {
+    "hash": "208832ccd48648688bd24031c9db28f3f73720b8",
+    "date": "2025-07-26 11:14:35 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
+    "message": "Agora a cor da bolinha na pagina inicial é referente ao tipo de atualização",
+    "description": ""
+  },
+  {
     "hash": "5dd0fed89f74a2d8ed255ee2c1d16872f2520c16",
     "date": "2025-07-26 11:07:32 -0300",
     "type": "perf",

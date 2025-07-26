@@ -2,7 +2,7 @@
 
 import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaPlus, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaBars } from 'react-icons/fa';
 import AuthModal from '../AuthModal';
 import MovieSearchModal from '../MovieSearchModal';
 import ReviewModal from '../ReviewModal';
@@ -32,6 +32,9 @@ const UserProfileLink = React.memo(() => {
 
 export default function Header() {
   const navigate = useNavigate();
+  
+  // Estado para controlar o menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Estados para os modais de autenticação
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -101,10 +104,31 @@ export default function Header() {
     setPosters([]);
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleMobileLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    try {
+      await signIn(loginIdentifier, loginPassword);
+      setShowLoginForm(false);
+      closeMobileMenu();
+    } catch (err: any) {
+      setLoginError("Credenciais de login inválidas.");
+    }
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 z-50 py-3 transition-all">
         <div className="container mx-auto px-4 flex justify-between items-center">
+          {/* Logo Section */}
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
               <div className="relative mr-2">
@@ -116,6 +140,8 @@ export default function Header() {
                 <div className="text-xs text-gray-400 mt-0.5">clube do cinema</div>
               </div>
             </div>
+            
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-5 text-sm">
               <Link to="/films" className="font-semibold text-gray-300 hover:text-white transition-colors">FILMES</Link>
               <Link to="/lists" className="font-semibold text-gray-300 hover:text-white transition-colors">LISTAS</Link>
@@ -123,7 +149,8 @@ export default function Header() {
             </nav>
           </div>
 
-          <div className="flex items-center space-x-4 text-sm">
+          {/* Desktop User Section */}
+          <div className="hidden md:flex items-center space-x-4 text-sm">
             {isLoading ? (
               <div className="h-6 w-24 bg-gray-700 rounded-md animate-pulse"></div>
             ) : user ? (
@@ -151,7 +178,7 @@ export default function Header() {
                    <div className="flex items-center justify-end w-full gap-2">
                     <button onClick={() => setShowLoginForm(false)} className="p-1.5 text-gray-400 hover:text-white" aria-label="Fechar"><FaTimes size={16} /></button>
                     <div className="relative">
-                      <form onSubmit={handleLogin} className="hidden md:flex items-center space-x-2">
+                      <form onSubmit={handleLogin} className="flex items-center space-x-2">
                         <input
                           type="text"
                           placeholder="Usuário ou Email"
@@ -180,7 +207,136 @@ export default function Header() {
               </div>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center space-x-3">
+            {user && (
+              <button
+                onClick={() => setIsSearchModalOpen(true)}
+                className="p-2 bg-gray-700 rounded-full text-white hover:bg-cyan-600 transition-colors"
+                title="Adicionar um filme ao seu diário"
+              >
+                <FaPlus size={12} />
+              </button>
+            )}
+            <button
+              onClick={toggleMobileMenu}
+              className="p-2 text-gray-300 hover:text-white transition-colors"
+              aria-label="Menu"
+            >
+              {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-gray-800 border-t border-gray-700">
+            <div className="container mx-auto px-4 py-4 space-y-4">
+              {/* Navigation Links */}
+              <nav className="space-y-3">
+                <Link 
+                  to="/films" 
+                  className="block font-semibold text-gray-300 hover:text-white transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  FILMES
+                </Link>
+                <Link 
+                  to="/lists" 
+                  className="block font-semibold text-gray-300 hover:text-white transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  LISTAS
+                </Link>
+                <Link 
+                  to="/members" 
+                  className="block font-semibold text-gray-300 hover:text-white transition-colors py-2"
+                  onClick={closeMobileMenu}
+                >
+                  MEMBROS
+                </Link>
+              </nav>
+
+              <div className="border-t border-gray-700 pt-4">
+                {isLoading ? (
+                  <div className="h-8 w-32 bg-gray-700 rounded-md animate-pulse"></div>
+                ) : user ? (
+                  <div className="space-y-4">
+                    <div onClick={closeMobileMenu}>
+                      <UserProfileLink />
+                    </div>
+                    <button 
+                      onClick={() => { signOut(); closeMobileMenu(); }} 
+                      className="block w-full text-left font-semibold text-gray-400 hover:text-white py-2"
+                    >
+                      SAIR
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {!showLoginForm ? (
+                      <div className="space-y-3">
+                        <button 
+                          onClick={() => { setLoginError(null); setShowLoginForm(true); }} 
+                          className="block w-full text-left font-semibold text-gray-300 hover:text-white py-2"
+                        >
+                          ENTRAR
+                        </button>
+                        <button 
+                          onClick={() => { setIsAuthModalOpen(true); closeMobileMenu(); }} 
+                          className="block w-full px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 font-bold text-center"
+                        >
+                          CRIAR CONTA
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white font-semibold">Login</span>
+                          <button 
+                            onClick={() => setShowLoginForm(false)} 
+                            className="p-1 text-gray-400 hover:text-white"
+                            aria-label="Fechar"
+                          >
+                            <FaTimes size={16} />
+                          </button>
+                        </div>
+                        <form onSubmit={handleMobileLogin} className="space-y-3">
+                          <input
+                            type="text"
+                            placeholder="Usuário ou Email"
+                            value={loginIdentifier}
+                            onChange={(e) => setLoginIdentifier(e.target.value)}
+                            className={`w-full px-3 py-2 bg-gray-700 border rounded text-white text-sm focus:outline-none focus:ring-1 ${loginError ? 'border-red-500 ring-red-500' : 'border-gray-600 focus:ring-cyan-500'}`}
+                          />
+                          <input
+                            type="password"
+                            placeholder="Senha"
+                            value={loginPassword}
+                            onChange={(e) => setLoginPassword(e.target.value)}
+                            className={`w-full px-3 py-2 bg-gray-700 border rounded text-white text-sm focus:outline-none focus:ring-1 ${loginError ? 'border-red-500 ring-red-500' : 'border-gray-600 focus:ring-cyan-500'}`}
+                          />
+                          <button 
+                            type="submit" 
+                            className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm font-bold"
+                          >
+                            ENTRAR
+                          </button>
+                        </form>
+                        {loginError && (
+                          <div className="bg-red-600 text-white text-sm font-semibold px-3 py-2 rounded-md">
+                            {loginError}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
