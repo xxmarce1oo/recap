@@ -3,11 +3,10 @@
 import React, { useState, DragEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { parseLetterboxdWatchlistCsv } from '../utils/csvProcessor';
-import { searchMovies } from '../services/tmdbService';
+import { searchMulti, getMovieDetails, MultiSearchResult } from '../services/tmdbService';
 import { addMovieToWatchlist } from '../services/watchlistService';
 import { FaUpload, FaSpinner, FaCheckCircle, FaTimesCircle, FaFileCsv } from 'react-icons/fa';
 import Fuse from 'fuse.js';
-import { Movie } from '../models/movie';
 
 interface WatchlistImporterProps {
   onImportComplete: () => void;
@@ -19,6 +18,8 @@ enum ImportStatus {
   Success,
   Error,
 }
+
+const MINIMUM_RUNTIME_MINUTES = 40; // Duração mínima de um filme para ser importado
 
 export default function WatchlistImporter({ onImportComplete }: WatchlistImporterProps) {
   const { user } = useAuth();
@@ -43,65 +44,85 @@ export default function WatchlistImporter({ onImportComplete }: WatchlistImporte
 
     try {
       const entries = await parseLetterboxdWatchlistCsv(selectedFile);
-      setMessage(`Processando ${entries.length} filmes...`);
-
+      setMessage(`Processando ${entries.length} itens...`);
+      
       const fuseOptions = {
-        // A busca Fuse.js agora foca apenas nos títulos
-        keys: ['title', 'original_title'],
-        threshold: 0.4, // Um pouco mais flexível para pequenas diferenças de título
+        includeScore: true,
+        keys: [
+            { name: 'title', weight: 0.5 },
+            { name: 'original_title', weight: 0.5 },
+        ],
+        threshold: 0.6,
       };
 
-for (const entry of entries) {
+      for (const entry of entries) {
+        let failureReason = '';
+
         try {
-          const searchResults = await searchMovies(entry.title, 'en-US');
-          let movieFound: Movie | null = null;
-          
-          const validMovies = searchResults.results.filter(
-            movie => movie.poster_path && movie.vote_average > 0
-          );
+          const searchResults = await searchMulti(entry.title, 'en-US');
+          let bestCandidate: MultiSearchResult | null = null;
 
-          if (validMovies.length > 0) {
-            const fuse = new Fuse(validMovies, fuseOptions);
-            const fuseResult = fuse.search(entry.title);
+          if (searchResults.results.length === 0) {
+            failureReason = 'Não foi encontrado na busca da API.';
+          } else {
+            const validItems = searchResults.results.filter(
+              item => (item.media_type === 'movie') && item.poster_path
+            );
 
-            // ✅ NOVA LÓGICA DE PONTUAÇÃO:
-            const scoredResults = fuseResult.map(result => {
-              const movie = result.item;
-              // A pontuação do Fuse.js (0 = perfeito, 1 = oposto)
-              const titleScore = result.score ?? 1;
+            if (validItems.length === 0) {
+              failureReason = 'Resultados encontrados, mas nenhum era filme com pôster.';
+            } else {
+              const targetYear = parseInt(entry.year, 10);
+              const acceptableYears = [String(targetYear - 1), String(targetYear), String(targetYear + 1)];
+              
+              const moviesInYearRange = validItems.filter(item => 
+                item.release_date && acceptableYears.includes(item.release_date.substring(0, 4))
+              );
 
-              // Adiciona uma penalidade se o ano não for uma correspondência exata
-              const yearMatches = movie.release_date?.substring(0, 4) === entry.year;
-              const yearPenalty = yearMatches ? 0 : 0.4; // Penalidade significativa, mas não eliminatória
+              if (moviesInYearRange.length === 0) {
+                failureReason = `Nenhum filme válido encontrado no intervalo de anos [${targetYear - 1}-${targetYear + 1}].`;
+              } else {
+                const fuse = new Fuse(moviesInYearRange, fuseOptions);
+                const fuseResult = fuse.search(entry.title);
 
-              const finalScore = titleScore + yearPenalty;
-              return { movie, finalScore };
-            });
-
-            // Ordena pela menor pontuação final e escolhe o melhor
-            if (scoredResults.length > 0) {
-              scoredResults.sort((a, b) => a.finalScore - b.finalScore);
-              movieFound = scoredResults[0].movie;
+                if (fuseResult.length > 0) {
+                   fuseResult.sort((a, b) => {
+                     const scoreDiff = (a.score || 1) - (b.score || 1);
+                     if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
+                     return (b.item.vote_count || 0) - (a.item.vote_count || 0);
+                   });
+                   bestCandidate = fuseResult[0].item;
+                } else {
+                  failureReason = 'Títulos encontrados no ano, mas nenhum era similar o suficiente.';
+                }
+              }
             }
           }
-
-          if (movieFound) {
-            await addMovieToWatchlist(user.id, movieFound.id);
-            importedCount++;
+          
+          if (bestCandidate) {
+            const movieDetails = await getMovieDetails(bestCandidate.id);
+            if (movieDetails.runtime && movieDetails.runtime >= MINIMUM_RUNTIME_MINUTES) {
+              await addMovieToWatchlist(user.id, bestCandidate.id);
+              importedCount++;
+            } else {
+              failedCount++;
+              failureReason = `Encontrado, mas sua duração (${movieDetails.runtime || 'N/A'} min) é menor que o mínimo de ${MINIMUM_RUNTIME_MINUTES} min.`;
+              errors.push(`"${entry.title} (${entry.year})" falhou: ${failureReason}`);
+            }
           } else {
             failedCount++;
-            errors.push(`Filme "${entry.title} (${entry.year})" não encontrado com os critérios.`);
+            errors.push(`"${entry.title} (${entry.year})" falhou: ${failureReason || 'Critérios não atendidos.'}`);
           }
         } catch (innerError: any) {
           failedCount++;
-          errors.push(`Erro ao processar "${entry.title}": ${innerError.message || 'Erro desconhecido'}`);
+          errors.push(`Erro de sistema ao processar "${entry.title}": ${innerError.message || 'Erro desconhecido'}`);
         }
       }
 
       let successMessage = `Importação concluída! ${importedCount} filme(s) adicionado(s).`;
       if (failedCount > 0) {
-        successMessage += ` ${failedCount} não foram importados.`;
-        console.warn('Erros/Filmes não importados:', errors);
+        successMessage += ` ${failedCount} não foram importados. Verifique o console para mais detalhes.`;
+        console.warn('Relatório de Falhas na Importação:', errors);
       }
 
       setMessage(successMessage);
@@ -116,7 +137,6 @@ for (const entry of entries) {
     }
   };
   
-  // O restante do arquivo (handleReset, handleFileChange, renderContent, etc.) permanece o mesmo.
   const handleReset = () => {
     setSelectedFile(null);
     setStatus(ImportStatus.Idle);

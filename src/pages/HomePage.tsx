@@ -6,11 +6,27 @@ import MovieCarousel from '../components/MovieCarousel';
 import SkeletonCarousel from '../components/SkeletonCarousel';
 import { useHomePageViewModel } from '../viewmodels/useHomePageViewModel';
 import { useAuth } from '../contexts/AuthContext';
+import { Movie } from '@/models/movie';
+import { getContentBasedRecommendations } from '../services/recommendationService'; // MUDANÇA AQUI
 
 export default function HomePage() {
   const { nowPlaying, topRated, heroMovie, isLoading, error } = useHomePageViewModel();
   const { user } = useAuth();
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [recommendations, setRecommendations] = useState<Movie[]>([]); // MUDANÇA AQUI
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(true);
+
+useEffect(() => {
+    if (user) {
+      setIsLoadingRecommendations(true);
+      getContentBasedRecommendations(user.id, 6) // MUDANÇA AQUI
+        .then(setRecommendations)
+        .catch(err => console.error("Erro ao buscar recomendações:", err))
+        .finally(() => setIsLoadingRecommendations(false));
+    } else {
+      setIsLoadingRecommendations(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,8 +127,27 @@ export default function HomePage() {
         </div>
       </div>
       
-      {/* Container dos Carrosséis */}
+            {/* Container dos Carrosséis */}
       <div className="container mx-auto px-12 py-12 space-y-12 bg-gray-900 relative z-10">
+        
+              {/* Carrossel de Recomendações */}
+        {user && (
+            isLoadingRecommendations ? (
+                <SkeletonCarousel />
+            ) : recommendations.length > 0 ? (
+                <MovieCarousel title="Recomendações para Você" movies={recommendations} />
+            ) : (
+                // ✅ NOVA MENSAGEM DE FALLBACK
+                <div className="text-center p-8 bg-gray-800/50 rounded-lg">
+                    <h3 className="text-xl font-bold text-white">Descubra novos filmes!</h3>
+                    <p className="text-gray-400 mt-2">
+                        Avalie os filmes que você assiste para receber recomendações personalizadas aqui.
+                    </p>
+                </div>
+            )
+        )}
+
+        {/* Carrosséis existentes */}
         {isLoading ? (
           <div className="space-y-12">
             <SkeletonCarousel />
@@ -127,4 +162,4 @@ export default function HomePage() {
       </div>
     </main>
   );
-} 
+}
