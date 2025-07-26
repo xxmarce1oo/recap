@@ -6,6 +6,7 @@ interface Update {
   hash: string;
   date: string;
   message: string;
+  description: string; // Adicionamos o campo de descrição
 }
 
 export default function UpdatesPage() {
@@ -14,7 +15,6 @@ export default function UpdatesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Busca o arquivo JSON gerado pelo nosso script
     fetch('/updates.json')
       .then(response => {
         if (!response.ok) {
@@ -55,6 +55,13 @@ export default function UpdatesPage() {
                 <div className="absolute -left-[7px] top-1 h-3 w-3 bg-cyan-500 rounded-full"></div>
                 <p className="text-sm text-gray-400 mb-1">{new Date(update.date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 <h2 className="text-xl font-semibold text-white">{update.message}</h2>
+                
+                {/* ✅ Renderiza a descrição se ela existir */}
+                {update.description && (
+                  <p className="text-gray-300 mt-2 text-base whitespace-pre-line">
+                    {update.description}
+                  </p>
+                )}
               </div>
             ))}
           </div>

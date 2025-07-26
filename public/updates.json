@@ -1,5 +1,10 @@
 [
   {
+    "hash": "39a74b3a2ff7b261cca2a9f3ff847bd0341ebbcf",
+    "date": "2025-07-26",
+    "message": "Testando Registro"
+  },
+  {
     "hash": "72b58702599e32a23f6a556fc8070c4e6fa8015b",
     "date": "2025-07-26",
     "message": "Adicionado sistema de recomendações e changelog automático"
