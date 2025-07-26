@@ -11,8 +11,7 @@ const COMMIT_TYPES = {
   'feat':   { label: 'Nova Funcionalidade', color: 'bg-blue-500'   }, // Azul
   'update': { label: 'Melhoria',            color: 'bg-green-500'  }, // Verde
   'fix':    { label: 'Correção de Erro',    color: 'bg-red-500'    }, // Vermelho
-  // (Opcional) Você pode adicionar 'perf' ou outros tipos aqui no futuro
-  // 'perf': { label: 'Performance', color: 'bg-purple-500' },
+  'perf':   { label: 'Performance',         color: 'bg-purple-500' }, // Roxo
 };
 
 const publicDir = path.join(__dirname, '..', 'public');

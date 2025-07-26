@@ -11,4 +11,21 @@
     @apply bg-gray-900 text-gray-100;
    
   }
+}/* Adicione ao seu CSS global */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Prevenir reflow durante animações */
+.filter-button {
+  will-change: transform, background-color;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Smooth scroll para a página */
+html {
+  scroll-behavior: smooth;
 }

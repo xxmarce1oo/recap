@@ -1,38 +1,101 @@
 [
   {
+    "hash": "ee074824381d99b778a0e764e605e767edcf7035",
+    "date": "2025-07-26 10:10:32 -0300",
+    "type": "feat",
+    "label": "Nova Funcionalidade",
+    "color": "bg-blue-500",
+    "message": "Refina e personaliza os tipos de commit do changelog",
+    "description": "A configuração do script de geração de atualizações foi ajustada para refletir as categorias e cores desejadas, tornando o changelog mais semântico e visualmente informativo.\n\n- O script 'generate-updates.cjs' agora utiliza a seguinte configuração:\n\n  - feat: Nova Funcionalidade (Azul)\n\n  - update: Melhoria (Verde)\n\n  - fix: Correção de Erro (Vermelho)\n\n- A página de atualizações agora exibe os rótulos e cores correspondentes, além de permitir a filtragem por estes novos tipos."
+  },
+  {
     "hash": "e7f3be8f8ff35f059ddf7e1e004458d2dccbb87c",
     "date": "2025-07-26 10:03:07 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
     "message": "Adiciona notificação de atualização na página inicial",
     "description": "Para aumentar a visibilidade da página de 'Atualizações', um novo componente de notificação foi adicionado à seção principal da HomePage.\n\n- A página agora busca o log de atualizações mais recente do arquivo updates.json.\n- Um link estilizado, contendo o título da última atualização, é exibido para usuários logados, incentivando-os a visitar a página de changelog."
   },
   {
     "hash": "8633bb6ac46896c2ee8496a800fcd4de1cad947b",
     "date": "2025-07-26 09:54:57 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
     "message": "Melhoria no Sistema de Recomendações",
     "description": "O sistema foi atualizado para ser mais robusto e inteligente.\n\n- Adicionada uma lógica de fallback que utiliza os filmes mais recentes do usuário se não houver filmes com nota alta.\n- Implementado um placeholder na página inicial para guiar o usuário a avaliar filmes e receber recomendações."
   },
   {
     "hash": "a192536ff22815e240154e0415a51d2c6cec6156",
     "date": "2025-07-26 09:52:55 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
     "message": "Melhoria no Sistema de Recomendações",
     "description": "O sistema foi atualizado para ser mais robusto e inteligente.\n\n- Adicionada uma lógica de fallback que utiliza os filmes mais recentes do usuário se não houver filmes com nota alta.\n- Implementado um placeholder na página inicial para guiar o usuário a avaliar filmes e receber recomendações."
   },
   {
     "hash": "eae352c5b8fa640ccf711c7ac4974eea6de842da",
     "date": "2025-07-26 09:51:57 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
     "message": "Melhoria no Sistema de Recomendações",
     "description": "O sistema foi atualizado para ser mais robusto e inteligente.\n\n- Adicionada uma lógica de fallback que utiliza os filmes mais recentes do usuário se não houver filmes com nota alta.\n- Implementado um placeholder na página inicial para guiar o usuário a avaliar filmes e receber recomendações."
   },
   {
     "hash": "39a74b3a2ff7b261cca2a9f3ff847bd0341ebbcf",
     "date": "2025-07-26 09:47:31 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
     "message": "Testando Registro",
     "description": ""
   },
   {
     "hash": "72b58702599e32a23f6a556fc8070c4e6fa8015b",
     "date": "2025-07-26 09:44:05 -0300",
+    "type": "update",
+    "label": "Melhoria",
+    "color": "bg-green-500",
     "message": "Adicionado sistema de recomendações e changelog automático",
     "description": ""
+  },
+  {
+    "hash": "bce55c95dfd56c08ab921fae92e23ca0708bf4d8",
+    "date": "2025-07-25 15:05:11 -0300",
+    "type": "fix",
+    "label": "Correção de Erro",
+    "color": "bg-red-500",
+    "message": "resolve TypeScript errors in csvProcessor for Vercel deployment",
+    "description": ""
+  },
+  {
+    "hash": "21ab00714971ef330a05b81114f3e0524225370e",
+    "date": "2025-07-22 16:48:41 -0300",
+    "type": "feat",
+    "label": "Nova Funcionalidade",
+    "color": "bg-blue-500",
+    "message": "Aprimora sistema de reviews e personalização de perfil",
+    "description": "Realiza uma grande refatoração no sistema de reviews para melhorar a usabilidade e adiciona novas funcionalidades de personalização no perfil do usuário.\n\nAs principais mudanças incluem:\n\n- **Sistema de Review e Diário:**\n  - O formulário para adicionar reviews agora é inline na página de detalhes do filme, substituindo o modal anterior.\n  - Foi criada uma página dedicada para cada review individual (/log/:logId), preparando o terreno para futuras interações como comentários e curtidas.\n  - A página principal do Diário agora exibe as reviews em um formato de lista detalhada, utilizando o componente DiaryEntryCard.\n\n- **Sistema de Avaliação (Notas):**\n  - Implementado um novo sistema de input de notas com precisão decimal (ex: 3.7), permitindo avaliações mais detalhadas.\n  - Criado um componente reutilizável (StarRatingDisplay) para exibir visualmente as notas decimais com estrelas parcialmente preenchidas.\n  - Todos os componentes que exibem notas (DiaryEntryCard, UserReviewCard, etc.) foram atualizados para usar o novo sistema.\n  - O gráfico de estatísticas no perfil do usuário (StatsWidget) foi ajustado para agrupar e exibir corretamente as novas notas decimais.\n\n- **Personalização do Perfil:**\n  - Usuários agora podem escolher um pôster específico para cada um de seus 4 filmes favoritos, com a escolha sendo salva no banco de dados.\n  - Adicionado um novo modal (PosterSelectionModal) para a seleção de pôsteres.\n\n- **Correções e Melhorias Gerais:**\n  - Corrigidos erros de API (HTTP 406) na verificação da watchlist.\n  - Resolvidos erros de build do TypeScript (módulos não encontrados, exportações padrão ausentes).\n  - Corrigida a estrutura do HTML em componentes de card para evitar erros de aninhamento de links (<a> dentro de <a>)."
+  },
+  {
+    "hash": "2ae6b6025c99ac586b7858867774f1e270a12ea4",
+    "date": "2025-07-22 14:56:37 -0300",
+    "type": "fix",
+    "label": "Correção de Erro",
+    "color": "bg-red-500",
+    "message": "fetch do perfil/header",
+    "description": ""
+  },
+  {
+    "hash": "e7c4431c8b46b12e21d1543e7f49e356f728e491",
+    "date": "2025-07-22 08:08:06 -0300",
+    "type": "feat",
+    "label": "Nova Funcionalidade",
+    "color": "bg-blue-500",
+    "message": "Aprimora relevância e usabilidade da busca de filmes",
+    "description": "A busca de filmes no modal foi reestruturada para oferecer resultados significativamente mais precisos e uma experiência de usuário superior.\n\nAs principais melhorias incluem:\n\n- Implementação de busca 'fuzzy' com Fuse.js para tolerar erros de digitação.\n- Adição da busca pelo título original ('original_title').\n- Criação de um score combinado que considera popularidade e relevância textual.\n- Remoção de filmes sem pôster dos resultados."
   }
 ]
