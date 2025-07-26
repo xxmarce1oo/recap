@@ -6,21 +6,29 @@ const path = require('path');
 
 console.log('Gerando log de atualizações a partir dos commits...');
 
+// ✅ CONFIGURAÇÃO DOS TIPOS DE COMMIT E CORES
+const COMMIT_TYPES = {
+  'feat':   { label: 'Nova Funcionalidade', color: 'bg-blue-500'   }, // Azul
+  'update': { label: 'Melhoria',            color: 'bg-green-500'  }, // Verde
+  'fix':    { label: 'Correção de Erro',    color: 'bg-red-500'    }, // Vermelho
+  // (Opcional) Você pode adicionar 'perf' ou outros tipos aqui no futuro
+  // 'perf': { label: 'Performance', color: 'bg-purple-500' },
+};
+
 const publicDir = path.join(__dirname, '..', 'public');
 const outputPath = path.join(publicDir, 'updates.json');
 
 const COMMIT_DELIMITER = '---END_OF_COMMIT---';
 const FIELD_DELIMITER = '|||';
 
-const INCLUDED_PREFIXES = ['update:', 'feat:'];
+// Pega as chaves do objeto COMMIT_TYPES para usar no filtro (ex: ['feat', 'update', 'fix'])
+const INCLUDED_PREFIXES = Object.keys(COMMIT_TYPES);
 
 try {
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
 
-  // ✅ CORREÇÃO AQUI: Mudamos --date=short para --date=iso
-  // Isso nos dará a data e a hora em um formato padrão (ex: "2024-05-21 15:30:00 -0300")
   const gitLogOutput = execSync(
     `git log --pretty=format:"%H${FIELD_DELIMITER}%ad${FIELD_DELIMITER}%s${FIELD_DELIMITER}%b%n${COMMIT_DELIMITER}" --date=iso`
   ).toString();
@@ -29,38 +37,31 @@ try {
     .split(COMMIT_DELIMITER)
     .filter(line => line.trim() !== '')
     .map(line => {
-      // Voltamos a ter 4 campos, mas agora o 'date' contém a hora
       const [hash, date, message, description] = line.trim().split(FIELD_DELIMITER);
-      return { hash, date, message, description: description.trim() };
+      
+      const match = message.match(/^(\w+)(\(.*\))?:\s*(.*)$/);
+      if (!match) return null;
+
+      const type = match[1].toLowerCase();
+      const cleanMessage = match[3];
+
+      if (!COMMIT_TYPES[type]) return null;
+
+      return {
+        hash,
+        date,
+        type,
+        label: COMMIT_TYPES[type].label,
+        color: COMMIT_TYPES[type].color,
+        message: cleanMessage,
+        description: description.trim(),
+      };
     })
-    .filter(commit => {
-        if (!commit.message) return false;
-        const lowerCaseMessage = commit.message.toLowerCase();
-        return INCLUDED_PREFIXES.some(prefix => lowerCaseMessage.startsWith(prefix));
-    })
-    .map(commit => {
-        let cleanMessage = commit.message;
-        const lowerCaseMessage = commit.message.toLowerCase();
+    .filter(Boolean);
 
-        for (const prefix of INCLUDED_PREFIXES) {
-            if (lowerCaseMessage.startsWith(prefix)) {
-                cleanMessage = commit.message.substring(prefix.length).trim();
-                break; 
-            }
-        }
-        
-        cleanMessage = cleanMessage.replace(/^\(.*\):\s*/, '');
+  fs.writeFileSync(outputPath, JSON.stringify(commits, null, 2));
+  console.log(`Sucesso! ${commits.length} atualizações salvas em public/updates.json`);
 
-        return { ...commit, message: cleanMessage };
-    });
-
-  if (commits.length > 0) {
-    fs.writeFileSync(outputPath, JSON.stringify(commits, null, 2));
-    console.log(`Sucesso! ${commits.length} atualizações salvas em public/updates.json`);
-  } else {
-    fs.writeFileSync(outputPath, JSON.stringify([], null, 2));
-    console.log('Nenhum commit de "Update:" ou "feat:" encontrado. Arquivo de updates criado vazio.');
-  }
 } catch (error) {
   console.error('Erro ao gerar o log de atualizações:', error);
   if (!fs.existsSync(publicDir)) {

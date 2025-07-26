@@ -1,5 +1,11 @@
 [
   {
+    "hash": "e7f3be8f8ff35f059ddf7e1e004458d2dccbb87c",
+    "date": "2025-07-26 10:03:07 -0300",
+    "message": "Adiciona notificação de atualização na página inicial",
+    "description": "Para aumentar a visibilidade da página de 'Atualizações', um novo componente de notificação foi adicionado à seção principal da HomePage.\n\n- A página agora busca o log de atualizações mais recente do arquivo updates.json.\n- Um link estilizado, contendo o título da última atualização, é exibido para usuários logados, incentivando-os a visitar a página de changelog."
+  },
+  {
     "hash": "8633bb6ac46896c2ee8496a800fcd4de1cad947b",
     "date": "2025-07-26 09:54:57 -0300",
     "message": "Melhoria no Sistema de Recomendações",
