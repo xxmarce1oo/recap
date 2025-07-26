@@ -1,5 +1,14 @@
 [
   {
+    "hash": "5dd0fed89f74a2d8ed255ee2c1d16872f2520c16",
+    "date": "2025-07-26 11:07:32 -0300",
+    "type": "perf",
+    "label": "Performance",
+    "color": "bg-purple-500",
+    "message": "Melhoria de flicker no filtro",
+    "description": "Filtro estava piscando conforme passava o mouse, removido este erro"
+  },
+  {
     "hash": "ee074824381d99b778a0e764e605e767edcf7035",
     "date": "2025-07-26 10:10:32 -0300",
     "type": "feat",

@@ -29,7 +29,7 @@ export const UpdateItem = ({ update, isLast }: UpdateItemProps) => {
       case 'nova funcionalidade':
         return 'bg-green-500';
       default:
-        return 'bg-gray-500';
+        return 'bg-purple-500';
     }
   };
 

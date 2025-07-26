@@ -11,6 +11,7 @@ import { FaArrowRight } from 'react-icons/fa'; // Importar o ícone
 // Interface para o tipo de dado do update
 interface Update {
   message: string;
+  color?: string;
 }
 
 export default function HomePage() {
@@ -110,8 +111,9 @@ export default function HomePage() {
                 <div className="mt-10">
                   <Link to="/updates" className="group inline-flex items-center gap-3 px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg hover:bg-gray-800/80 hover:border-gray-600 transition-all">
                     <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                      {/* ✅ CORREÇÃO APLICADA AQUI */}
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${latestUpdate.color} opacity-75`}></span>
+                      <span className={`relative inline-flex rounded-full h-3 w-3 ${latestUpdate.color}`}></span>
                     </span>
                     <div className="text-left">
                       <p className="text-sm font-semibold text-white">Última atualização</p>
