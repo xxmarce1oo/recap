@@ -29,8 +29,8 @@ try {
     .split(COMMIT_DELIMITER) // Separa os commits pelo delimitador
     .filter(line => line.trim() !== '')
     .map(line => {
-      const [hash, date, message, description] = line.trim().split(FIELD_DELIMITER);
-      return { hash, date, message, description: description.trim() };
+      const [hash, date, time, message, description] = line.trim().split(FIELD_DELIMITER);
+      return { hash, date, time, message, description: description.trim() };
     })
     .filter(commit => commit.message && commit.message.startsWith('Update:')) // Filtra apenas os commits relevantes
     .map(commit => ({
