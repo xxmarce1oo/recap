@@ -83,26 +83,26 @@ export default function ListPage() {
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
-      <div className="container mx-auto px-6 md:px-12 py-24">
+      <div className="container mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-20 md:py-24">
         
         {/* Cabeçalho da página */}
-        <div className="mb-12">
-            <Link to="/" className="flex items-center gap-3 text-cyan-400 hover:text-cyan-300 transition-colors w-max mb-4">
-                <FaArrowLeft />
-                <span>Voltar para o Início</span>
+        <div className="mb-8 sm:mb-10 md:mb-12">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 text-cyan-400 hover:text-cyan-300 transition-colors w-max mb-3 sm:mb-4">
+                <FaArrowLeft className="text-sm sm:text-base" />
+                <span className="text-sm sm:text-base">Voltar para o Início</span>
             </Link>
-            <h1 className="text-4xl md:text-5xl font-bold">{pageTitle}</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">{pageTitle}</h1>
         </div>
 
         {/* Grade de Filmes */}
         <div>
           {isLoading ? (
-            <p className="text-center text-lg">Carregando filmes...</p>
+            <p className="text-center text-base sm:text-lg">Carregando filmes...</p>
           ) : error ? (
-            <p className="text-center text-lg text-red-500">{error}</p>
+            <p className="text-center text-base sm:text-lg text-red-500">{error}</p>
           ) : movies.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
+              <div className="grid grid-cols-4 gap-3 sm:gap-4">
                 {movies.map((movie) => (
                   <MovieCard key={`${movie.id}-${Math.random()}`} movie={movie} />
                 ))}
@@ -110,11 +110,11 @@ export default function ListPage() {
 
               {/* ✅ Botão para carregar mais filmes */}
               {page <= totalPages && (
-                <div className="text-center mt-12">
+                <div className="text-center mt-8 sm:mt-10 md:mt-12">
                   <button 
                     onClick={handleLoadMore} 
                     disabled={isFetchingMore}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 sm:py-2.5 px-4 sm:px-6 rounded-lg transition-colors disabled:opacity-50 text-sm sm:text-base"
                   >
                     {isFetchingMore ? 'Carregando...' : 'Carregar mais'}
                   </button>
@@ -122,7 +122,7 @@ export default function ListPage() {
               )}
             </>
           ) : (
-            <p className="text-center text-lg text-gray-500">Nenhum filme encontrado nesta categoria.</p>
+            <p className="text-center text-base sm:text-lg text-gray-500">Nenhum filme encontrado nesta categoria.</p>
           )}
         </div>
       </div>

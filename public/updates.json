@@ -1,5 +1,14 @@
 [
   {
+    "hash": "05b555f6e77f175f6de17127da7d4f719f0183eb",
+    "date": "2025-07-26 11:32:21 -0300",
+    "type": "perf",
+    "label": "Performance",
+    "color": "bg-purple-500",
+    "message": "implementa header responsivo com menu hambúrguer para mobile",
+    "description": "- Adiciona menu hambúrguer que se transforma em X quando aberto\n- Menu mobile com links de navegação empilhados verticalmente\n- Adapta formulário de login para telas pequenas\n- Mantém funcionalidade completa em todos os dispositivos\n- Melhora padding responsivo no Layout\n- Aplica classes Tailwind mobile-first (hidden md:flex, md:hidden)\n- Interface fluida entre breakpoints de tela"
+  },
+  {
     "hash": "208832ccd48648688bd24031c9db28f3f73720b8",
     "date": "2025-07-26 11:14:35 -0300",
     "type": "update",

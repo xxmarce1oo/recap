@@ -99,7 +99,7 @@ export default function DiaryPage() {
         <p className="text-center text-lg text-red-500">{error}</p>
       ) : logs.length > 0 ? (
         <>
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-4 gap-3 sm:gap-4">
             {logs.map((log) => (
               <DiaryGridItem key={log.id} log={log} />
             ))}

@@ -9,9 +9,22 @@
   
   body {
     @apply bg-gray-900 text-gray-100;
-   
   }
-}/* Adicione ao seu CSS global */
+}
+
+@layer utilities {
+  /* Esconder barra de rolagem mas manter funcionalidade */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE e Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari e Opera */
+  }
+}
+
+/* Adicione ao seu CSS global */
 .transition-all {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

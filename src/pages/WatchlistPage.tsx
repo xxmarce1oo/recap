@@ -80,19 +80,19 @@ export default function WatchlistPage() {
   };
   return (
     <div className="bg-gray-900 min-h-screen text-white">
-      <div className="container mx-auto px-6 md:px-12 py-24">
-        <h1 className="text-4xl md:text-5xl font-bold mb-8">Minha Watchlist</h1>
+      <div className="container mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-20 md:py-24">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8">Minha Watchlist</h1>
         {/* ADICIONE O COMPONENTE DO IMPORTADOR AQUI */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <WatchlistImporter onImportComplete={handleImportSuccess} />
         </div>
         
         {isLoading ? (
-          <p className="text-center text-lg">Carregando sua lista...</p>
+          <p className="text-center text-base sm:text-lg">Carregando sua lista...</p>
         ) : error ? (
-          <p className="text-center text-lg text-red-500">{error}</p>
+          <p className="text-center text-base sm:text-lg text-red-500">{error}</p>
         ) : watchlistMovies.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-4 gap-3 sm:gap-4">
             {watchlistMovies.map(movie => (
               <MovieCard key={movie.id} movie={movie} />
             ))}

@@ -107,7 +107,7 @@ export default function UserProfilePage() {
                 fetchedRecentLogs, fetchedRatingsDistribution, counts
             ] = await Promise.all([
                 getWatchlist(fetchedProfile.id), getUniqueFilmCount(fetchedProfile.id),
-                getReviewCount(fetchedProfile.id), getRecentEnrichedLogs(fetchedProfile.id, 6),
+                getReviewCount(fetchedProfile.id), getRecentEnrichedLogs(fetchedProfile.id, 4),
                 getRatingsDistribution(fetchedProfile.id), getFriendshipCounts(fetchedProfile.id)
             ]);
 
@@ -268,9 +268,9 @@ export default function UserProfilePage() {
                     </div>
                 </div>
 
-                <div className="container mx-auto px-6 md:px-12 pt-40 pb-16">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-3 space-y-8">
+                <div className="container mx-auto px-4 sm:px-6 md:px-12 pt-32 sm:pt-36 md:pt-40 pb-12 sm:pb-14 md:pb-16">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
+                        <div className="lg:col-span-3 space-y-6 sm:space-y-8">
                             <div>
                                 <div className="flex justify-between items-baseline">
                                     <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">ATIVIDADE RECENTE</h2>
@@ -279,16 +279,16 @@ export default function UserProfilePage() {
                                     )}
                                 </div>
                                 {recentLogs.length > 0 ? (
-                                    <div className="grid grid-cols-6 gap-4">
+                                    <div className="grid grid-cols-4 gap-3 sm:gap-4">
                                         {recentLogs.map(log => <DiaryGridItem key={log.id} log={log} />)}
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500">Nenhuma atividade recente.</p>
+                                    <p className="text-gray-500 text-sm sm:text-base">Nenhuma atividade recente.</p>
                                 )}
                             </div>
-                            <div className="border-t border-gray-700/50 pt-8">
+                            <div className="border-t border-gray-700/50 pt-6 sm:pt-8">
                                 <h2 className="text-sm uppercase tracking-wider text-gray-400 mb-3">FILMES FAVORITOS</h2>
-                                <div className="grid grid-cols-4 gap-4">
+                                <div className="grid grid-cols-4 gap-3 sm:gap-4">
                                     {favoriteMovies.map((movie, index) => (
                                         <FavoriteMovieSlot
                                             key={index}
@@ -301,15 +301,15 @@ export default function UserProfilePage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="lg:col-span-1 space-y-8">
-                            <div className="grid grid-cols-2 gap-4 text-center">
-                                <div className="bg-gray-800/50 p-4 rounded-lg">
-                                    <p className="text-3xl font-bold text-white">{filmCount}</p>
-                                    <p className="text-sm text-gray-400">Filmes</p>
+                        <div className="lg:col-span-1 space-y-6 sm:space-y-8">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4 text-center">
+                                <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg">
+                                    <p className="text-2xl sm:text-3xl font-bold text-white">{filmCount}</p>
+                                    <p className="text-xs sm:text-sm text-gray-400">Filmes</p>
                                 </div>
-                                <div className="bg-gray-800/50 p-4 rounded-lg">
-                                    <p className="text-3xl font-bold text-white">{reviewCount}</p>
-                                    <p className="text-sm text-gray-400">Reviews</p>
+                                <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg">
+                                    <p className="text-2xl sm:text-3xl font-bold text-white">{reviewCount}</p>
+                                    <p className="text-xs sm:text-sm text-gray-400">Reviews</p>
                                 </div>
                             </div>
                             {isProfileLoading ? (

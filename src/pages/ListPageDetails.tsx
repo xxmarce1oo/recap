@@ -180,7 +180,7 @@ export default function ListPageDetails() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-4 gap-3 sm:gap-4">
             {list.movies.map((movie) => (
               <div key={movie.id} className="relative group">
                 <MovieCard movie={movie} />

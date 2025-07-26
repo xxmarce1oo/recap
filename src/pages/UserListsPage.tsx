@@ -100,10 +100,10 @@ export default function UserListsPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-6 md:px-12 text-center py-24">
-        <h1 className="text-2xl font-bold">Acesso Negado</h1>
-        <p className="text-gray-400 mt-2">Você precisa estar logado para ver e gerenciar suas listas.</p>
-        <Link to="/" className="text-cyan-400 mt-4 inline-block hover:underline">
+      <div className="container mx-auto px-4 sm:px-6 md:px-12 text-center py-16 sm:py-20 md:py-24">
+        <h1 className="text-xl sm:text-2xl font-bold">Acesso Negado</h1>
+        <p className="text-gray-400 mt-2 text-sm sm:text-base">Você precisa estar logado para ver e gerenciar suas listas.</p>
+        <Link to="/" className="text-cyan-400 mt-4 inline-block hover:underline text-sm sm:text-base">
           Voltar para a página inicial
         </Link>
       </div>
@@ -111,13 +111,13 @@ export default function UserListsPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 md:px-12 py-24">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold">Minhas Listas</h1>
-        <div className="flex gap-4">
+    <div className="container mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-20 md:py-24">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">Minhas Listas</h1>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <button
             onClick={() => setIsInvitationModalOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors relative"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors relative text-sm sm:text-base"
           >
             <FaEnvelopeOpenText /> Convites
             {pendingInvitations.length > 0 && (
@@ -128,7 +128,7 @@ export default function UserListsPage() {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+            className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
           >
             <FaPlus /> Nova Lista
           </button>
@@ -136,27 +136,27 @@ export default function UserListsPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-center text-lg">A carregar listas...</p>
+        <p className="text-center text-base sm:text-lg">A carregar listas...</p>
       ) : error ? (
-        <p className="text-center text-lg text-red-500">{error}</p>
+        <p className="text-center text-base sm:text-lg text-red-500">{error}</p>
       ) : userLists.length === 0 ? (
-        <div className="text-center py-16 bg-gray-800 rounded-lg">
-          <h2 className="text-2xl font-bold">Você não tem listas ainda</h2>
-          <p className="text-gray-400 mt-2">Clique em "Nova Lista" para começar a organizar seus filmes.</p>
+        <div className="text-center py-12 sm:py-16 bg-gray-800 rounded-lg">
+          <h2 className="text-xl sm:text-2xl font-bold">Você não tem listas ainda</h2>
+          <p className="text-gray-400 mt-2 text-sm sm:text-base">Clique em "Nova Lista" para começar a organizar seus filmes.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {userLists.map((list) => (
-            <div key={list.id} className="bg-gray-800 rounded-lg p-6 flex flex-col justify-between">
+            <div key={list.id} className="bg-gray-800 rounded-lg p-4 sm:p-6 flex flex-col justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">{list.name}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">{list.name}</h2>
                 {list.description && <p className="text-gray-400 text-sm mb-4 line-clamp-2">{list.description}</p>}
                 <p className="text-gray-500 text-xs mt-2">{list.movies_ids.length} filme(s)</p>
               </div>
-              <div className="flex justify-end gap-3 mt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4">
                 <Link
                   to={`/lists/${list.id}`}
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors text-sm font-semibold"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors text-sm font-semibold text-center sm:text-left"
                 >
                   Ver Lista
                 </Link>
